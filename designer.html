@@ -506,7 +506,10 @@ input[type="color"] {
 <div id="toolbar">
   <span id="app-title">Floorspacer</span>
   <div class="sep"></div>
-  <button class="tb-btn" id="btn-furniture-toggle" title="Show or hide the furniture panel.">🛋 Furniture</button>
+  <button class="tb-btn" id="btn-furniture-toggle" title="Show or hide the furniture panel.">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5"/><path d="M3 12h18v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><line x1="4" y1="17" x2="4" y2="20"/><line x1="20" y1="17" x2="20" y2="20"/></svg>
+    Furniture
+  </button>
   <div class="sep"></div>
   <button class="tb-btn active" id="btn-move" title="Select (V) — click a room/item to select. Combine with Pan for click-drag panning too. Click again to turn off.">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-3 7z"/></svg>
@@ -625,7 +628,10 @@ input[type="color"] {
   </button>
   <button class="tb-btn" id="btn-tutorial" title="Replay tutorial">?</button>
   <div class="sep"></div>
-  <button class="tb-btn" id="btn-account" title="Account">👤 Account</button>
+  <button class="tb-btn" id="btn-account" title="Account">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+    <span id="btn-account-label">Account</span>
+  </button>
 </div>
 
 <!-- MAIN -->
@@ -3049,6 +3055,7 @@ function updateAccountUI() {
   const resetPassword = document.getElementById('account-reset-password');
   const upgradeBtn = document.getElementById('account-upgrade-btn');
   const btnAccount = document.getElementById('btn-account');
+  const btnAccountLabel = document.getElementById('btn-account-label');
   resetPassword.style.display = 'none';
   if (state.session) {
     loggedOut.style.display = 'none';
@@ -3056,12 +3063,12 @@ function updateAccountUI() {
     document.getElementById('account-email-display').textContent = state.session.user.email;
     document.getElementById('account-tier-display').textContent = state.licenseUnlocked ? 'Paid ✓' : 'Free';
     upgradeBtn.style.display = state.licenseUnlocked ? 'none' : '';
-    btnAccount.textContent = '👤 ' + state.session.user.email.split('@')[0];
+    btnAccountLabel.textContent = state.session.user.email.split('@')[0];
     btnAccount.classList.add('active');
   } else {
     loggedOut.style.display = '';
     loggedIn.style.display = 'none';
-    btnAccount.textContent = '👤 Account';
+    btnAccountLabel.textContent = 'Account';
     btnAccount.classList.remove('active');
   }
 }
