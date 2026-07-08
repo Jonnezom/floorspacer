@@ -829,9 +829,22 @@ input[type="color"] {
         <span class="prop-label">Password</span>
         <input type="password" id="account-password" style="width:100%;padding:5px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;margin-top:4px;" autocomplete="current-password">
       </div>
+      <div style="text-align:right;margin-top:6px">
+        <a href="#" id="account-forgot-link" style="font-size:11px;color:#888;text-decoration:underline;">Forgot password?</a>
+      </div>
       <div class="dim-btns" style="margin-top:12px">
         <button class="dim-ok" id="account-signin-btn">Log in</button>
         <button class="dim-skip" id="account-signup-btn">Sign up</button>
+      </div>
+    </div>
+
+    <div id="account-reset-password" style="display:none">
+      <div class="prop-row">
+        <span class="prop-label">New password</span>
+        <input type="password" id="account-new-password" style="width:100%;padding:5px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;margin-top:4px;" autocomplete="new-password">
+      </div>
+      <div class="dim-btns" style="margin-top:12px">
+        <button class="dim-ok" id="account-reset-password-btn">Set new password</button>
       </div>
     </div>
 
@@ -1633,7 +1646,23 @@ async function signOut() {
   await sb.auth.signOut();
 }
 
-sb.auth.onAuthStateChange(() => { refreshTierFromServer(); });
+async function requestPasswordReset(email) {
+  const redirectTo = location.origin + location.pathname;
+  return sb.auth.resetPasswordForEmail(email, { redirectTo });
+}
+
+async function setNewPassword(newPassword) {
+  return sb.auth.updateUser({ password: newPassword });
+}
+
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    openAccountModal();
+    showPasswordResetForm();
+    return;
+  }
+  refreshTierFromServer();
+});
 
 // ═══════════════════════════════════════════════════════════
 //  CANVAS SETUP
@@ -3017,8 +3046,10 @@ function clearAccountModalBanner() {
 function updateAccountUI() {
   const loggedOut = document.getElementById('account-logged-out');
   const loggedIn = document.getElementById('account-logged-in');
+  const resetPassword = document.getElementById('account-reset-password');
   const upgradeBtn = document.getElementById('account-upgrade-btn');
   const btnAccount = document.getElementById('btn-account');
+  resetPassword.style.display = 'none';
   if (state.session) {
     loggedOut.style.display = 'none';
     loggedIn.style.display = '';
@@ -3033,6 +3064,12 @@ function updateAccountUI() {
     btnAccount.textContent = '👤 Account';
     btnAccount.classList.remove('active');
   }
+}
+
+function showPasswordResetForm() {
+  document.getElementById('account-logged-out').style.display = 'none';
+  document.getElementById('account-logged-in').style.display = 'none';
+  document.getElementById('account-reset-password').style.display = '';
 }
 
 function showAccountError(msg) {
@@ -3058,9 +3095,34 @@ document.getElementById('account-signup-btn').addEventListener('click', async ()
   const password = document.getElementById('account-password').value;
   if (!email || !password) return showAccountError('Enter an email and password.');
   if (password.length < 6) return showAccountError('Password must be at least 6 characters.');
-  const { error } = await signUp(email, password);
+  const { data, error } = await signUp(email, password);
   if (error) return showAccountError(error.message);
+  // Supabase returns no error for an already-registered email (to avoid leaking
+  // which emails exist) — an empty identities array is the tell for that case.
+  if (data?.user && data.user.identities && data.user.identities.length === 0) {
+    return showAccountError('An account with this email already exists. Try logging in, or use "Forgot password?" below.');
+  }
   showAccountError('Check your email to confirm your account, then log in.');
+});
+
+document.getElementById('account-forgot-link').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('account-email').value.trim();
+  if (!email) return showAccountError('Enter your email above first, then click "Forgot password?".');
+  const { error } = await requestPasswordReset(email);
+  if (error) return showAccountError(error.message);
+  showAccountError('Check your email for a password reset link.');
+});
+
+document.getElementById('account-reset-password-btn').addEventListener('click', async () => {
+  const newPassword = document.getElementById('account-new-password').value;
+  if (!newPassword || newPassword.length < 6) return showAccountError('Password must be at least 6 characters.');
+  const { error } = await setNewPassword(newPassword);
+  if (error) return showAccountError(error.message);
+  clearAccountModalBanner();
+  document.getElementById('account-new-password').value = '';
+  updateAccountUI();
+  showAccountError('Password updated ✓ You are now logged in.');
 });
 
 document.getElementById('account-logout-btn').addEventListener('click', async () => {
