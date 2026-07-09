@@ -1661,8 +1661,11 @@ async function setNewPassword(newPassword) {
   return sb.auth.updateUser({ password: newPassword });
 }
 
+let inPasswordRecovery = false;
+
 sb.auth.onAuthStateChange((event) => {
   if (event === 'PASSWORD_RECOVERY') {
+    inPasswordRecovery = true;
     openAccountModal();
     showPasswordResetForm();
     return;
@@ -3038,6 +3041,7 @@ function openAccountModal(bannerMsg) {
 function closeAccountModal() {
   accountModalBackdrop.classList.remove('show');
   clearAccountModalBanner();
+  inPasswordRecovery = false;
 }
 
 function showAccountModalBanner(msg) {
@@ -3056,6 +3060,7 @@ function updateAccountUI() {
   const upgradeBtn = document.getElementById('account-upgrade-btn');
   const btnAccount = document.getElementById('btn-account');
   const btnAccountLabel = document.getElementById('btn-account-label');
+  if (inPasswordRecovery) { resetPassword.style.display = ''; loggedOut.style.display = 'none'; loggedIn.style.display = 'none'; return; }
   resetPassword.style.display = 'none';
   if (state.session) {
     loggedOut.style.display = 'none';
@@ -3126,6 +3131,7 @@ document.getElementById('account-reset-password-btn').addEventListener('click', 
   if (!newPassword || newPassword.length < 6) return showAccountError('Password must be at least 6 characters.');
   const { error } = await setNewPassword(newPassword);
   if (error) return showAccountError(error.message);
+  inPasswordRecovery = false;
   clearAccountModalBanner();
   document.getElementById('account-new-password').value = '';
   updateAccountUI();
