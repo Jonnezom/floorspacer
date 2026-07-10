@@ -875,6 +875,7 @@ input[type="color"] {
   </div>
 </div>
 
+<script defer src="https://cloud.umami.is/script.js" data-website-id="3512710a-8edd-4c5a-8ddb-ed24336f1f14"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 'use strict';
@@ -1605,6 +1606,13 @@ let undoStack = [];
 let redoStack = [];
 let nextId = 1;
 let wallNextId = 1;
+
+// ═══════════════════════════════════════════════════════════
+//  ANALYTICS (Umami — usage-signal events only, never PII)
+// ═══════════════════════════════════════════════════════════
+function trackEvent(name, data) {
+  try { window.umami?.track(name, data); } catch(e) { /* analytics must never break the app */ }
+}
 
 // ═══════════════════════════════════════════════════════════
 //  ACCOUNT + TIER (Supabase-backed — server is the source of truth,
@@ -2967,7 +2975,7 @@ function buildSidebar(filter = '') {
         badge.textContent = '🔒';
         badge.title = 'Paid feature — unlock the full catalog';
         row.appendChild(badge);
-        row.addEventListener('click', () => openAccountModal());
+        row.addEventListener('click', () => { trackEvent('locked_furniture_clicked', { item: def.name }); openAccountModal(); });
       }
 
       row.addEventListener('dragstart', e => {
@@ -3114,6 +3122,7 @@ document.getElementById('account-signup-btn').addEventListener('click', async ()
   if (data?.user && data.user.identities && data.user.identities.length === 0) {
     return showAccountError('An account with this email already exists. Try logging in, or use "Forgot password?" below.');
   }
+  trackEvent('signup_completed');
   showAccountError('Check your email to confirm your account, then log in.');
 });
 
@@ -3146,6 +3155,7 @@ document.getElementById('account-logout-btn').addEventListener('click', async ()
 document.getElementById('account-upgrade-btn').addEventListener('click', () => startCheckout());
 
 async function startCheckout() {
+  trackEvent('checkout_started');
   const btn = document.getElementById('account-upgrade-btn');
   btn.disabled = true;
   btn.textContent = 'Redirecting to checkout…';
@@ -3169,7 +3179,8 @@ if (new URLSearchParams(location.search).get('paid') === '1') {
   const poll = setInterval(async () => {
     await refreshTierFromServer();
     attempts++;
-    if (state.licenseUnlocked || attempts >= 8) clearInterval(poll);
+    if (state.licenseUnlocked) { trackEvent('purchase_completed'); clearInterval(poll); }
+    else if (attempts >= 8) clearInterval(poll);
   }, 1500);
 }
 
@@ -3187,6 +3198,7 @@ canvas.addEventListener('drop', e => {
   const def = FURNITURE_DEFS.find(d => d.id === defId);
   if (!def) return;
   if (def.tier === 'paid' && !state.licenseUnlocked) return;
+  trackEvent('furniture_placed', { category: def.category });
 
   const rect = canvas.getBoundingClientRect();
   let pt = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
@@ -4166,6 +4178,7 @@ function finishDrawing(closed, extraWallRefs, closingEdgeIsVirtual = true) {
   if (!isCallRoom) syncRoomPointsFromWalls(room);
   // Building outlines render behind everything else
   if (role === 'building') state.rooms.unshift(room); else state.rooms.push(room);
+  if (!isWallMode && !role && closed) trackEvent('room_drawn');
   state.drawPoints = [];
   state.selectedRoomId = room.id;
   state.selectedId = null;
@@ -5313,6 +5326,7 @@ function saveCurrentDesign(forceNew) {
     saveDesign(null, currentDesignId);
   } else {
     if (!state.licenseUnlocked && listDesigns().length >= FREE_SAVE_SLOT_LIMIT) {
+      trackEvent('save_limit_hit');
       openAccountModal(`🔒 Free plan is limited to ${FREE_SAVE_SLOT_LIMIT} saved designs. Unlock the full version to save more.`);
       return;
     }
