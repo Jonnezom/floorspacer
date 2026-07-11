@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
       customer_email: user.email,
       automatic_tax: { enabled: true },
       metadata: { supabase_user_id: user.id },
-      success_url: `${base}/designer.html?paid=1`,
-      cancel_url: `${base}/designer.html`,
+      success_url: `${base}/?paid=1`,
+      cancel_url: `${base}/`,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
