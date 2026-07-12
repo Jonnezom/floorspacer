@@ -194,8 +194,9 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
   c.strokeStyle = isSelected ? '#fff' : strokeColor;
   const baseLineWidth = room.role === 'building' ? 4 : 2;
   c.lineWidth = (isSelected ? baseLineWidth + 0.5 : baseLineWidth) / state.zoom;
-  if (room.role === 'balcony') c.setLineDash([6 / state.zoom, 4 / state.zoom]);
-  else if (isSelected) c.setLineDash([]);
+  const roomDash = room.role === 'balcony' ? [6 / state.zoom, 4 / state.zoom] : [];
+  const virtualDash = [4 / state.zoom, 4 / state.zoom];
+  c.setLineDash(roomDash);
   // Pass 1: compute each wall's drawn (non-gap) spans in isolation.
   // wallRefs[i] and edge i correspond 1:1 by construction — every opening
   // on that wall belongs to this span, no wallIdx filter needed. When the
@@ -231,7 +232,7 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
       }
       if (t < 1) spans.push([t, 1]);
     }
-    wallSpans.push({ p1, p2, spans, touchesStart: gaps.length > 0 && gaps[0].t1 < NOTCH_T, touchesEnd: gaps.length > 0 && gaps[gaps.length - 1].t2 > 1 - NOTCH_T });
+    wallSpans.push({ p1, p2, spans, isVirtual: !!wallObj?.virtual, touchesStart: gaps.length > 0 && gaps[0].t1 < NOTCH_T, touchesEnd: gaps.length > 0 && gaps[gaps.length - 1].t2 > 1 - NOTCH_T });
   }
   // Pass 2: purely cosmetic — if an opening sits right at a wall's corner,
   // nibble a small notch off the START of the span of the wall that meets
@@ -254,6 +255,11 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
     }
   }
   for (const wall of wallSpans) {
+    // Dashed so an auto-generated closing edge (from Enter/double-click
+    // finish) is visually distinguishable from a wall the user actually
+    // drew, even though both are stroked the same otherwise (see the
+    // "virtual only means non-interactive" note above).
+    c.setLineDash(wall.isVirtual ? virtualDash : roomDash);
     for (const [t1, t2] of wall.spans) drawWallSpan(c, wall.p1, wall.p2, t1, t2);
   }
   c.setLineDash([]);
