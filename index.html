@@ -2424,14 +2424,15 @@ function drawRoom(room, c = ctx) {
         .sort((a, b) => a.t1 - b.t1)
       : [];
     const spans = [];
-    // A virtual wall (the implicit self-close edge, see buildWallRefsForRoom)
-    // is fill-only — it never gets stroked, so it has no drawable spans at
-    // all. Its entry still exists in wallSpans (empty spans) so the notch
-    // pass's neighbor indexing (wallSpans[i±1]) stays aligned with wallCount.
+    // A virtual wall (the implicit self-close edge from an Enter/double-click
+    // finish, see buildWallRefsForRoom) is still stroked like any other wall —
+    // otherwise a closed room visually looks "open" on that edge. `virtual`
+    // only means it's non-interactive: not selectable/editable, no doors or
+    // windows placeable on it, not a joinable structural wall for other rooms.
     // A Call Room has no wallRefs at all (wallObj is always null for it) —
     // it must render as a plain filled/labeled polygon with NO stroke,
     // never real-looking walls, since it has no underlying wall data.
-    if (!room.callRoom && (!wallObj || !wallObj.virtual)) {
+    if (!room.callRoom) {
       let t = 0;
       for (const gap of gaps) {
         if (gap.t1 > t) spans.push([t, gap.t1]);
