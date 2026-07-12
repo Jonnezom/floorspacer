@@ -398,7 +398,8 @@ function runExport({ background = 'white', includeGrid = false } = {}) {
 
   // draw rooms — reuse the real renderer so open/unfinished chains, doors,
   // windows and gateways all export exactly as they render on screen
-  state.rooms.forEach(room => drawRoom(room, ec));
+  const exportLabeledWallIds = new Set();
+  state.rooms.forEach(room => drawRoom(room, ec, exportLabeledWallIds));
 
   // draw furniture
   state.items.forEach(item => {

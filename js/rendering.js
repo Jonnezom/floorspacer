@@ -43,8 +43,15 @@ function render() {
   // abort the loop mid-way, since that would skip the matching ctx.restore()
   // below and leave the canvas transform stacked/doubled on every
   // subsequent render.
+  // labeledWallIds resets every frame: when two rooms share a physical wall
+  // (each with their own wallRefs entry pointing at the same wall object),
+  // each room's independent label-drawing pass would otherwise stamp its own
+  // length label at the same midpoint, overlapping. Only the first room to
+  // draw a given wall's label gets to — good enough since both rooms report
+  // the same physical length anyway.
+  const labeledWallIds = new Set();
   state.rooms.forEach(room => {
-    try { drawRoom(room); } catch (e) { console.warn('Failed to draw room', room.id, e); }
+    try { drawRoom(room, ctx, labeledWallIds); } catch (e) { console.warn('Failed to draw room', room.id, e); }
   });
 
   // in-progress draw
@@ -160,7 +167,7 @@ function drawRuler(W, H, c = ctx, dark = true) {
   c.fillText('2m', sbX + sbW / 2, sbY - 6 / state.zoom);
 }
 
-function drawRoom(room, c = ctx) {
+function drawRoom(room, c = ctx, labeledWallIds = null) {
   if (room.points.length < 2) return;
   const interactive = c === ctx;
   const ci = room.colorIndex ?? 0;
@@ -268,6 +275,13 @@ function drawRoom(room, c = ctx) {
   for (let i = 0; i < wallCount && !room.callRoom; i++) {
     const ref = room.wallRefs?.[i];
     if (ref && getWallById(ref.wallId)?.virtual) continue;
+    // A wall shared between two rooms (each with their own wallRefs entry
+    // pointing at the same wall object) would otherwise get labeled twice,
+    // once per room, both landing on the same physical midpoint.
+    if (ref && labeledWallIds) {
+      if (labeledWallIds.has(ref.wallId)) continue;
+      labeledWallIds.add(ref.wallId);
+    }
     const p = pts[i], next = pts[(i + 1) % pts.length];
     const mx = (p.x + next.x) / 2, my = (p.y + next.y) / 2;
     const d = dist(p, next);
