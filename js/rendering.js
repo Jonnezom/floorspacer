@@ -26,6 +26,12 @@ function render() {
   // grid drawn in screen space (no transform), so it covers full canvas
   if (state.showGrid) drawGrid();
 
+  // Empty-state hint — a fresh/cleared design otherwise shows nothing but
+  // grid+ruler, which looks identical to "broken" once the one-time tutorial
+  // has already been seen/skipped. Purely a function of current content, no
+  // separate dismiss flag needed: it vanishes the instant a room exists.
+  if (state.rooms.length === 0 && state.items.length === 0) drawEmptyStateHint(W, H);
+
   ctx.save();
   ctx.translate(state.panX, state.panY);
   ctx.scale(state.zoom, state.zoom);
@@ -56,6 +62,30 @@ function render() {
 
   renderMinimap();
   updateStatus();
+}
+
+function drawEmptyStateHint(W, H) {
+  const cx = W / 2, cy = H / 2 - 20;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.font = '600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillText('Draw your first room to get started', cx, cy);
+  ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillText('Click "Room" in the toolbar above, then click to place corners', cx, cy + 24);
+
+  // small upward-pointing arrow toward the toolbar
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 20);
+  ctx.lineTo(cx, cy - 48);
+  ctx.moveTo(cx - 6, cy - 42);
+  ctx.lineTo(cx, cy - 48);
+  ctx.lineTo(cx + 6, cy - 42);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawGrid(c = ctx, w = canvas.width, h = canvas.height, dark = true) {

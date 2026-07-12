@@ -147,7 +147,7 @@ body {
   padding: 10px 12px;
   text-align: left;
   color: #999;
-  border-bottom: 1px solid #333;
+  border-top: 1px solid #333;
   flex-shrink: 0;
 }
 #sidebar-lock.show { display: block; }
@@ -237,6 +237,7 @@ body {
   cursor: pointer;
   border-radius: 4px;
   z-index: 6;
+  display: flex; align-items: center; justify-content: center;
 }
 #rp-close:hover { background: #2a2a2a; color: #fff; }
 .prop-row { display: flex; flex-direction: column; gap: 3px; }
@@ -251,8 +252,10 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: background .15s;
 }
+.prop-btn svg { flex-shrink: 0; }
 .prop-btn:hover { background: #333; }
 .prop-btn.danger { border-color: #888; color: #ff6b6b; }
 .prop-btn.danger:hover { background: #333; }
@@ -314,7 +317,9 @@ input[type="color"] {
   cursor: pointer;
   font-size: 12px;
   color: #ccc;
+  display: flex; align-items: center; gap: 8px;
 }
+.ctx-item svg { flex-shrink: 0; }
 .ctx-item:hover { background: #252525; }
 .ctx-item.danger { color: #ff6b6b; }
 
@@ -614,10 +619,10 @@ input[type="color"] {
       Save ▾
     </button>
     <div class="dropdown-menu" id="save-menu">
-      <div class="opening-menu-item" id="save-menu-save" title="Save over the design you currently have open.">💾 Save</div>
-      <div class="opening-menu-item" id="save-menu-new" title="Save as a new design, keeping the current one untouched.">✚ Save as new</div>
-      <div class="opening-menu-item" id="save-menu-export" title="Download the current design as a .json file.">⬇️ Export as JSON</div>
-      <div class="opening-menu-item" id="save-menu-import" title="Load a design from a .json file.">⬆️ Import from JSON</div>
+      <div class="opening-menu-item" id="save-menu-save" title="Save over the design you currently have open."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save</div>
+      <div class="opening-menu-item" id="save-menu-new" title="Save as a new design, keeping the current one untouched."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Save as new</div>
+      <div class="opening-menu-item" id="save-menu-export" title="Download the current design as a .json file."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export as JSON</div>
+      <div class="opening-menu-item" id="save-menu-import" title="Load a design from a .json file."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 5 12 10 17 5"/><line x1="12" y1="10" x2="12" y2="21"/></svg> Import from JSON</div>
     </div>
   </div>
   <button class="tb-btn" id="btn-load" title="Load a saved design">
@@ -640,15 +645,15 @@ input[type="color"] {
 <div id="main">
   <!-- SIDEBAR -->
   <div id="sidebar">
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="Search furniture…">
+    </div>
+    <div id="furniture-list"></div>
     <div id="sidebar-lock">
       <div id="sidebar-lock-title">🔒 Some furniture is paid</div>
       <div id="sidebar-lock-sub">Unlock the full furniture catalog for a one-time €10.</div>
       <button class="tb-btn" id="sidebar-unlock-btn" style="width:100%;justify-content:center;margin-top:8px;">Unlock — €10</button>
     </div>
-    <div id="search-wrap">
-      <input id="search-input" type="text" placeholder="Search furniture…">
-    </div>
-    <div id="furniture-list"></div>
   </div>
 
   <!-- CANVAS -->
@@ -661,7 +666,7 @@ input[type="color"] {
 
   <!-- RIGHT PANEL -->
   <div id="right-panel" class="hidden">
-    <button id="rp-close" title="Close">✕</button>
+    <button id="rp-close" title="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     <!-- Furniture section -->
     <div id="rp-furniture">
       <h3>Furniture</h3>
@@ -685,11 +690,11 @@ input[type="color"] {
         <span class="prop-label">Fill Color</span>
         <input type="color" id="rp-color" value="#888">
       </div>
-      <button class="prop-btn" id="rp-image-replace" style="display:none" title="Choose a different picture for this item.">🖼️ Replace image…</button>
-      <button class="prop-btn" id="rp-resize" title="Type exact width and depth for this item.">⤢ Resize…</button>
-      <button class="prop-btn" id="rp-rotate" title="Rotate this item by 90 degrees.">↻ Rotate 90°</button>
-      <button class="prop-btn" id="rp-flip" title="Mirror this item horizontally.">⇆ Flip</button>
-      <button class="prop-btn danger" id="rp-delete" title="Remove this item from the design.">✕ Delete</button>
+      <button class="prop-btn" id="rp-image-replace" style="display:none" title="Choose a different picture for this item."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Replace image…</button>
+      <button class="prop-btn" id="rp-resize" title="Type exact width and depth for this item."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Resize…</button>
+      <button class="prop-btn" id="rp-rotate" title="Rotate this item by 90 degrees."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 4 20 4 20 9"/><path d="M20 4L14 10"/><path d="M4 14a8 8 0 0 0 15 4"/></svg> Rotate 90°</button>
+      <button class="prop-btn" id="rp-flip" title="Mirror this item horizontally."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/><path d="M8 7L4 12l4 5"/><path d="M16 7l4 5-4 5"/></svg> Flip</button>
+      <button class="prop-btn danger" id="rp-delete" title="Remove this item from the design."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Delete</button>
     </div>
     <!-- Room section -->
     <div id="rp-room" style="display:none">
@@ -722,14 +727,14 @@ input[type="color"] {
         <span class="prop-label">Open space (no fill)</span>
         <input type="checkbox" id="rp-room-open" style="margin-top:4px;accent-color:#fff;">
       </div>
-      <button class="prop-btn" id="rp-room-edit-pts" style="margin-top:6px" title="Drag individual corners of this room.">✏️ Edit wall points</button>
-      <button class="prop-btn" id="rp-room-perp" style="margin-top:4px" title="Straighten walls to 90-degree angles.">📐 Make Perpendicular</button>
+      <button class="prop-btn" id="rp-room-edit-pts" style="margin-top:6px" title="Drag individual corners of this room."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Edit wall points</button>
+      <button class="prop-btn" id="rp-room-perp" style="margin-top:4px" title="Straighten walls to 90-degree angles."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v14h14"/><path d="M4 12h6v6"/></svg> Make Perpendicular</button>
       <div id="rp-room-extend" style="display:none; margin-top:4px">
-        <button class="prop-btn" id="rp-room-extend-start" title="Keep drawing new walls from this room's starting point.">↰ Continue from start</button>
-        <button class="prop-btn" id="rp-room-extend-end" style="margin-top:4px" title="Keep drawing new walls from this room's end point.">↱ Continue from end</button>
+        <button class="prop-btn" id="rp-room-extend-start" title="Keep drawing new walls from this room's starting point."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a4 4 0 0 1 4 4v7"/></svg> Continue from start</button>
+        <button class="prop-btn" id="rp-room-extend-end" style="margin-top:4px" title="Keep drawing new walls from this room's end point."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a4 4 0 0 0-4 4v7"/></svg> Continue from end</button>
       </div>
       <div id="rp-room-walls" style="margin-top:8px"></div>
-      <button class="prop-btn danger" id="rp-room-delete" style="margin-top:4px" title="Remove this room from the design.">✕ Delete room</button>
+      <button class="prop-btn danger" id="rp-room-delete" style="margin-top:4px" title="Remove this room from the design."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Delete room</button>
     </div>
   </div>
 </div>
@@ -766,10 +771,10 @@ input[type="color"] {
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" id="ctx-rotate" title="Rotate this item by 90 degrees.">↻ Rotate 90°</div>
-  <div class="ctx-item" id="ctx-flip" title="Mirror this item horizontally.">⇆ Flip</div>
-  <div class="ctx-item" id="ctx-duplicate" title="Create a copy of this item.">⧉ Duplicate</div>
-  <div class="ctx-item danger" id="ctx-delete" title="Remove this item from the design.">✕ Delete</div>
+  <div class="ctx-item" id="ctx-rotate" title="Rotate this item by 90 degrees."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 4 20 4 20 9"/><path d="M20 4L14 10"/><path d="M4 14a8 8 0 0 0 15 4"/></svg> Rotate 90°</div>
+  <div class="ctx-item" id="ctx-flip" title="Mirror this item horizontally."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/><path d="M8 7L4 12l4 5"/><path d="M16 7l4 5-4 5"/></svg> Flip</div>
+  <div class="ctx-item" id="ctx-duplicate" title="Create a copy of this item."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Duplicate</div>
+  <div class="ctx-item danger" id="ctx-delete" title="Remove this item from the design."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Delete</div>
 </div>
 
 <!-- CUSTOM TOOLTIP -->
