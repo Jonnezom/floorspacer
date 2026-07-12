@@ -293,17 +293,29 @@ function pushRoomPointsToWalls(room) {
 // to migrateToSharedWalls's migration-only findExistingWall — the actual
 // mechanism that makes two rooms drawn touching each other share one wall
 // instead of drawing two independent overlapping ones.
-// virtual: true marks a NEWLY-created wall as fill-only — not stroked, not
-// selectable/editable, not clickable for placing doors/windows/gateways.
-// Used for the implicit closing edge of a self-closed polygon (e.g. from
-// double-click/Enter finish), which exists purely so the shape has a
-// complete boundary to fill/measure area with — the user never drew that
-// edge as a real wall. Only applies when a NEW wall is created; if pA/pB
-// coincide with an EXISTING wall (real, owned by some other room already),
-// that wall is reused as-is and stays real — a virtual flag is never
-// retroactively added to or removed from an already-real wall.
+// virtual: true marks the implicit closing edge of a self-closed polygon
+// (e.g. from double-click/Enter finish) — a synthetic segment the user never
+// explicitly drew, existing purely so the shape has a complete boundary to
+// fill/measure area with. For this edge, reuse-matching is skipped entirely
+// (always creates a fresh wall) rather than searching for a nearby existing
+// wall to attach to: the closing edge's endpoints often coincide with a
+// vertex freshly created by joining onto another room's wall (see
+// handleDrawClick's first-point join), and matching a SYNTHETIC edge against
+// that vertex's neighboring wall-halves risked silently importing an
+// unrelated far endpoint as this room's corner. A real, intentional
+// wall-join (the user actually clicking back onto existing structure) is a
+// non-virtual segment and still goes through normal reuse-matching below.
 function findOrCreateWall(pA, pB, ownerRoomId, virtual) {
-  const TOL = VERTEX_SNAP_DIST;
+  if (virtual) {
+    const wall = { id: wallNextId++, a: { x: pA.x, y: pA.y }, b: { x: pB.x, y: pB.y }, doors: [], windows: [], gateways: [], ownerRoomIds: [ownerRoomId], virtual: true };
+    state.walls.push(wall);
+    return { wall, reversed: false };
+  }
+
+  // Zoom-scaled like every other live-drawing distance check (findWallVertexAt/
+  // findWallEdgeAt/getRoomPointAt) — a raw world-unit TOL previously let two
+  // unrelated points at high zoom spuriously match.
+  const TOL = VERTEX_SNAP_DIST / state.zoom;
   let wall = state.walls.find(w =>
     !w.ownerRoomIds.every(id => id === ownerRoomId) &&
     ((dist(w.a, pA) < TOL && dist(w.b, pB) < TOL) ||
@@ -316,7 +328,6 @@ function findOrCreateWall(pA, pB, ownerRoomId, virtual) {
   } else {
     reversed = false;
     wall = { id: wallNextId++, a: { x: pA.x, y: pA.y }, b: { x: pB.x, y: pB.y }, doors: [], windows: [], gateways: [], ownerRoomIds: [ownerRoomId] };
-    if (virtual) wall.virtual = true;
     state.walls.push(wall);
   }
   return { wall, reversed };
