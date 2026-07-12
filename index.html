@@ -681,10 +681,11 @@ input[type="color"] {
         <span class="prop-label">Rotation</span>
         <span class="prop-value" id="rp-rot">0°</span>
       </div>
-      <div class="prop-row">
+      <div class="prop-row" id="rp-color-row">
         <span class="prop-label">Fill Color</span>
         <input type="color" id="rp-color" value="#888">
       </div>
+      <button class="prop-btn" id="rp-image-replace" style="display:none" title="Choose a different picture for this item.">🖼️ Replace image…</button>
       <button class="prop-btn" id="rp-resize" title="Type exact width and depth for this item.">⤢ Resize…</button>
       <button class="prop-btn" id="rp-rotate" title="Rotate this item by 90 degrees.">↻ Rotate 90°</button>
       <button class="prop-btn" id="rp-flip" title="Mirror this item horizontally.">⇆ Flip</button>
@@ -1515,6 +1516,32 @@ function makeDefs() {
     fill(ctx, '#e94560'); ctx.beginPath(); ctx.moveTo(w * 0.35, fireY); ctx.bezierCurveTo(w * 0.35, h * 0.3, w * 0.45, h * 0.2, w * 0.5, h * 0.15); ctx.bezierCurveTo(w * 0.55, h * 0.2, w * 0.65, h * 0.3, w * 0.65, fireY); ctx.closePath(); ctx.fill();
     fill(ctx, '#ff6600'); ctx.beginPath(); ctx.moveTo(w * 0.4, fireY); ctx.bezierCurveTo(w * 0.4, h * 0.4, w * 0.47, h * 0.3, w * 0.5, h * 0.25); ctx.bezierCurveTo(w * 0.53, h * 0.3, ctx.bezierCurveTo(w * 0.6, h * 0.4, w * 0.6, fireY), 0, 0); ctx.fill();
     fill(ctx, '#ffcc00'); ctx.beginPath(); ctx.moveTo(w * 0.45, fireY); ctx.bezierCurveTo(w * 0.45, h * 0.5, w * 0.48, h * 0.4, w * 0.5, h * 0.35); ctx.bezierCurveTo(w * 0.52, h * 0.4, w * 0.55, h * 0.5, w * 0.55, fireY); ctx.closePath(); ctx.fill();
+  });
+
+  // Custom Image — paid-only. Placeholder thumbnail (dashed box + icon) since
+  // there's no per-def image; the actual picture is chosen per-instance on
+  // drop (see the 'drop' handler) and stored as item.imageDataUrl.
+  D.push({
+    id: idCounter++, name: 'Custom Image', category: 'Custom', tier: 'paid', isImage: true,
+    w: 2 * GRID, h: 2 * GRID,
+    draw: (ctx, w, h, c) => {
+      stroke(ctx, '#777', 1.5);
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(2, 2, w - 4, h - 4);
+      ctx.setLineDash([]);
+      fill(ctx, '#777');
+      ctx.beginPath();
+      ctx.arc(w * 0.35, h * 0.4, Math.min(w, h) * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(w * 0.2, h * 0.75);
+      ctx.lineTo(w * 0.45, h * 0.5);
+      ctx.lineTo(w * 0.6, h * 0.65);
+      ctx.lineTo(w * 0.8, h * 0.4);
+      ctx.lineTo(w * 0.85, h * 0.75);
+      ctx.closePath();
+      ctx.fill();
+    },
   });
 
   return D;
@@ -2795,9 +2822,14 @@ function drawFurnitureItem(item, def) {
     ctx.shadowBlur = 12 / state.zoom;
   }
 
-  // offscreen canvas for furniture
-  const ofc = getFurnitureCanvas(def, item.color || '#888', iw, ih);
-  ctx.drawImage(ofc, 0, 0, iw, ih);
+  if (item.imageDataUrl) {
+    const img = getFurnitureImage(item);
+    if (img && img.complete && img.naturalWidth) ctx.drawImage(img, 0, 0, iw, ih);
+  } else {
+    // offscreen canvas for furniture
+    const ofc = getFurnitureCanvas(def, item.color || '#888', iw, ih);
+    ctx.drawImage(ofc, 0, 0, iw, ih);
+  }
 
   ctx.shadowBlur = 0;
 
@@ -2857,6 +2889,21 @@ function getFurnitureCanvas(def, color, cw, ch) {
   def.draw(octx, w, h, color);
   furnitureCache.set(key, ofc);
   return ofc;
+}
+
+// Cache decoded <img> elements for custom-image furniture, keyed by the
+// item's own id + its data URL (so replacing an item's image invalidates
+// the cache entry rather than showing the stale picture).
+const furnitureImageCache = new Map();
+function getFurnitureImage(item) {
+  const key = `${item.id}_${item.imageDataUrl.length}`;
+  let img = furnitureImageCache.get(key);
+  if (img) return img;
+  img = new Image();
+  img.onload = () => render();
+  img.src = item.imageDataUrl;
+  furnitureImageCache.set(key, img);
+  return img;
 }
 
 function renderMinimap() {
@@ -3203,6 +3250,50 @@ canvas.addEventListener('dragover', e => {
   e.dataTransfer.dropEffect = 'copy';
 });
 
+// Downscales/re-compresses an uploaded image so its data URL stays well
+// under localStorage/Supabase jsonb size budgets, then hands the result to
+// `onReady`. Only rejects if even a heavily downscaled version can't fit,
+// which shouldn't happen in practice for a floor-plan furniture thumbnail.
+const CUSTOM_IMAGE_MAX_DATA_URL_BYTES = 700 * 1024;
+function loadAndDownscaleImage(file, onReady, onError) {
+  const reader = new FileReader();
+  reader.onerror = () => onError('Could not read that file.');
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = () => onError('Not a valid image file.');
+    img.onload = () => {
+      let maxDim = 800;
+      let dataUrl;
+      do {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const cw = Math.max(1, Math.round(img.width * scale));
+        const ch = Math.max(1, Math.round(img.height * scale));
+        const oc = document.createElement('canvas');
+        oc.width = cw; oc.height = ch;
+        oc.getContext('2d').drawImage(img, 0, 0, cw, ch);
+        dataUrl = oc.toDataURL('image/jpeg', 0.85);
+        maxDim = Math.round(maxDim * 0.7);
+      } while (dataUrl.length > CUSTOM_IMAGE_MAX_DATA_URL_BYTES && maxDim > 50);
+      if (dataUrl.length > CUSTOM_IMAGE_MAX_DATA_URL_BYTES) { onError('Image is too complex to downscale enough — try a simpler image.'); return; }
+      onReady(dataUrl, img.width / img.height);
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function pickCustomImage(onReady) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    loadAndDownscaleImage(file, onReady, msg => showToast(msg, '#ff6666'));
+  });
+  input.click();
+}
+
 canvas.addEventListener('drop', e => {
   e.preventDefault();
   const defId = parseInt(e.dataTransfer.getData('defId'));
@@ -3214,6 +3305,22 @@ canvas.addEventListener('drop', e => {
   const rect = canvas.getBoundingClientRect();
   let pt = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
   pt = snapPt(pt);
+
+  if (def.isImage) {
+    pickCustomImage((dataUrl, aspect) => {
+      saveSnapshot();
+      const w = def.w, h = Math.max(SNAP_GRID, Math.round(w / aspect));
+      const item = { id: nextId++, defId, x: pt.x - w / 2, y: pt.y - h / 2, rot: 0, flipped: false, imageDataUrl: dataUrl, customW: w, customH: h };
+      state.items.push(item);
+      state.selectedId = item.id;
+      returnToSelectMode();
+      updateRightPanel();
+      render();
+      saveToLocal();
+      trackEvent('custom_image_furniture_added');
+    });
+    return;
+  }
 
   saveSnapshot();
   const item = { id: nextId++, defId, x: pt.x - def.w / 2, y: pt.y - def.h / 2, rot: 0, color: '#888', flipped: false };
@@ -5035,6 +5142,9 @@ function updateRightPanel() {
     document.getElementById('rp-pos').textContent = `${(item.x * SCALE).toFixed(2)}, ${(item.y * SCALE).toFixed(2)} m`;
     document.getElementById('rp-rot').textContent = `${Math.round(item.rot * 180 / Math.PI)}°`;
     document.getElementById('rp-color').value = rgbToHex(item.color || '#888');
+    const isImageItem = !!item.imageDataUrl;
+    document.getElementById('rp-color-row').style.display = isImageItem ? 'none' : '';
+    document.getElementById('rp-image-replace').style.display = isImageItem ? '' : 'none';
   } else if (room) {
     furnSection.style.display = 'none';
     roomSection.style.display = '';
@@ -5159,6 +5269,16 @@ document.getElementById('rp-color').addEventListener('input', e => {
   item.color = e.target.value;
   furnitureCache.clear();
   render(); saveToLocal();
+});
+document.getElementById('rp-image-replace').addEventListener('click', () => {
+  const item = getSelectedItem();
+  if (!item) return;
+  pickCustomImage((dataUrl) => {
+    item.imageDataUrl = dataUrl;
+    furnitureImageCache.delete(`${item.id}_${dataUrl.length}`);
+    render(); saveToLocal();
+    trackEvent('custom_image_furniture_replaced');
+  });
 });
 
 // ── Room panel controls ──
