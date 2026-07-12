@@ -747,15 +747,15 @@ input[type="color"] {
   <div class="dim-title" id="dim-title">Set Size</div>
   <div id="dim-furniture-fields">
     <label>Width</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-w"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-w" autocomplete="off" name="floorspacer-width"> <span class="dim-unit">m</span></div>
     <label>Depth</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-h"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-h" autocomplete="off" name="floorspacer-depth"> <span class="dim-unit">m</span></div>
   </div>
   <div id="dim-wall-fields" style="display:none">
     <label>Wall length</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-len"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-len" autocomplete="off" name="floorspacer-wall-length"> <span class="dim-unit">m</span></div>
     <label>Direction (angle °, 0=right, 90=down)</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-angle"> <span class="dim-unit">°</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-angle" autocomplete="off" name="floorspacer-wall-angle"> <span class="dim-unit">°</span></div>
   </div>
   <div class="dim-btns">
     <button class="dim-ok" id="dim-ok">Apply</button>
@@ -1591,6 +1591,7 @@ let state = {
   editOpenings: false,     // must be true for doors/windows/gateways to be selectable/draggable
   dragRooms: false,        // must be true to drag a whole room's body (avoids accidental moves)
   mode: 'selectpan',
+  lastSelectPanMode: 'selectpan', // remembers select/pan/selectpan combo across modal actions (draw/place/etc.)
   drawPoints: [],
   drawRole: null,   // 'building' | 'balcony' | 'callroom' | null — variant of 'draw' mode
   extendRoomId: null,    // room being extended in 'extend' mode
@@ -3217,7 +3218,7 @@ canvas.addEventListener('drop', e => {
   const item = { id: nextId++, defId, x: pt.x - def.w / 2, y: pt.y - def.h / 2, rot: 0, color: '#888', flipped: false };
   state.items.push(item);
   state.selectedId = item.id;
-  setMode('select');
+  returnToSelectMode();
   updateRightPanel();
   render();
   saveToLocal();
@@ -3514,7 +3515,7 @@ canvas.addEventListener('mousedown', e => {
         if (createdMode === 'door') state.selectedDoor = { wall: hit.wall, door: opening };
         else if (createdMode === 'window') state.selectedWindow = { wall: hit.wall, window: opening };
         else state.selectedGateway = { wall: hit.wall, gw: opening };
-        setMode('select');
+        returnToSelectMode();
         updateRightPanel();
         saveToLocal();
       }
@@ -4039,6 +4040,17 @@ function handleDrawClick(wp, e) {
     }
   }
 
+  // The very first point of a brand-new shape needs the same real, permanent
+  // join as every later point gets (see the pts.length >= 1 block below) —
+  // otherwise a start point that visually lands on an existing wall is only
+  // a coincidental coordinate match, not an actual shared vertex, and later
+  // edits (wall length/angle, snap-to-grid, dragging) can silently move it
+  // away from that wall since nothing ever recorded the link.
+  if (state.drawRole !== 'callroom' && (state.mode === 'draw' || state.mode === 'drawwall') && pts.length === 0) {
+    const startTarget = findWallJoinTargetAt(snapped.x, snapped.y, null);
+    if (startTarget) snapped = resolveJoinTarget(startTarget);
+  }
+
   // In room/wall mode: reaching an EXISTING room's corner or wall (not the
   // shape currently being drawn) means this new shape has joined onto the
   // rest of the structure — finish it there rather than requiring the user
@@ -4191,7 +4203,7 @@ function finishDrawing(closed, extraWallRefs, closingEdgeIsVirtual = true) {
   state.drawPoints = [];
   state.selectedRoomId = room.id;
   state.selectedId = null;
-  setMode('select');
+  returnToSelectMode();
   render();
   saveToLocal();
   updateRightPanel();
@@ -4216,7 +4228,7 @@ function finishExtendRoom() {
   if (!room || newPts.length === 0) {
     state.drawPoints = [];
     state.extendRoomId = null;
-    setMode('select');
+    returnToSelectMode();
     render();
     return;
   }
@@ -4237,7 +4249,7 @@ function finishExtendRoom() {
   state.extendRoomId = null;
   state.drawPoints = [];
   state.selectedRoomId = room.id;
-  setMode('select');
+  returnToSelectMode();
   render();
   saveToLocal();
   updateRightPanel();
@@ -4534,7 +4546,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape' && (state.mode === 'draw' || state.mode === 'drawwall' || state.mode === 'extend')) {
     if (_dimCallback) { _dimCallback(false); closeDimPopup(); }
-    state.drawPoints = []; state.extendRoomId = null; setMode('select'); render();
+    state.drawPoints = []; state.extendRoomId = null; returnToSelectMode(); render();
     return;
   }
 
@@ -4630,6 +4642,7 @@ function setMode(mode, drawRole) {
   const wasDrawing = state.mode === 'draw' || state.mode === 'drawwall' || state.mode === 'extend';
   const stillDrawing = mode === 'draw' || mode === 'drawwall' || mode === 'extend';
   if (!stillDrawing) { state.drawPoints = []; state.extendRoomId = null; }
+  if (mode === 'select' || mode === 'pan' || mode === 'selectpan') state.lastSelectPanMode = mode;
   state.mode = mode;
   state.drawRole = (mode === 'draw' || mode === 'drawwall') ? (drawRole || null) : null;
   // Select mode now also pans on empty-canvas drag, so both buttons read as
@@ -4663,6 +4676,13 @@ function setMode(mode, drawRole) {
   document.getElementById('sb-mode').textContent = `Mode: ${(state.drawRole && roleNames[state.drawRole]) || modeNames[mode] || mode}`;
   if (!stillDrawing) closeDimPopup();
   render();
+}
+
+// Returns to whichever select/pan combination was active before a modal
+// action (drawing, placing furniture/openings, etc.) started, instead of
+// always collapsing to plain 'select' and silently dropping Pan's active state.
+function returnToSelectMode() {
+  setMode(state.lastSelectPanMode);
 }
 
 // Select and Pan are independent toggles that combine: either alone gives a
@@ -5903,7 +5923,7 @@ document.getElementById('view-drag-rooms-checkbox').checked = state.dragRooms;
 loadFromLocal();
 seedDesignsFromLegacySave();
 applyTierGating();
-setMode('select');
+returnToSelectMode();
 if (!tutorialSeen) startTutorial();
 </script>
 </body>
