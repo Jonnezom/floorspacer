@@ -232,28 +232,17 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
       }
       if (t < 1) spans.push([t, 1]);
     }
-    wallSpans.push({ p1, p2, spans, isVirtual: !!wallObj?.virtual, touchesStart: gaps.length > 0 && gaps[0].t1 < NOTCH_T, touchesEnd: gaps.length > 0 && gaps[gaps.length - 1].t2 > 1 - NOTCH_T });
+    wallSpans.push({ p1, p2, spans, isVirtual: !!wallObj?.virtual });
   }
-  // Pass 2: purely cosmetic — if an opening sits right at a wall's corner,
-  // nibble a small notch off the START of the span of the wall that meets
-  // it there too, so the cut doesn't look like it stops abruptly at the
-  // joint. Does not touch hit-testing, labels, or wallIdx/t data anywhere.
-  for (let i = 0; i < wallCount; i++) {
-    const wall = wallSpans[i];
-    const len = dist(wall.p1, wall.p2);
-    if (len < 1) continue;
-    const notchT = Math.min(0.4, NOTCH_PX / len);
-    const prev = wallSpans[(i - 1 + wallCount) % wallCount];
-    const next = wallSpans[(i + 1) % wallCount];
-    if (wall.touchesStart && prev && prev !== wall && prev.spans.length) {
-      const last = prev.spans[prev.spans.length - 1];
-      if (last[1] > 1 - 1e-6) last[1] = Math.max(last[0], 1 - notchT);
-    }
-    if (wall.touchesEnd && next && next !== wall && next.spans.length) {
-      const first = next.spans[0];
-      if (first[0] < 1e-6) first[0] = Math.min(first[1], notchT);
-    }
-  }
+  // An earlier version of this pass nibbled a small cosmetic notch off a
+  // NEIGHBORING wall's span whenever an opening sat right at a shared
+  // corner, so the cut didn't look like it stopped abruptly at the joint.
+  // Removed: when the corner sits on a wall shared between two rooms, each
+  // room's independent render pass nibbled its OWN neighboring wall for the
+  // same opening, so a single gateway/door/window visibly opened up two
+  // separate walls in two different rooms instead of just its own wall.
+  // Every wall now only ever loses exactly the span its own openings cut —
+  // no cross-wall bleed, even at a corner.
   for (const wall of wallSpans) {
     // Dashed so an auto-generated closing edge (from Enter/double-click
     // finish) is visually distinguishable from a wall the user actually
