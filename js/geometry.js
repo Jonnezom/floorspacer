@@ -333,6 +333,74 @@ function findOrCreateWall(pA, pB, ownerRoomId, virtual) {
   return { wall, reversed };
 }
 
+// Re-merges adjacent wall fragments that were only ever split apart (via
+// splitWallAt, editor-input.js) to give some OTHER room a shared vertex —
+// once that other room is gone (deleteSelectedRoom, editor-draw.js), the
+// split has no remaining structural reason to exist, and the fragments
+// would otherwise stay separate forever (confirmed: no merge mechanism
+// existed anywhere before this). Call after removing this room's ownership
+// from any deleted room's walls. Only merges a pair when BOTH fragments are
+// owned solely by this room (ownerRoomIds.length === 1 — still shared with
+// another surviving room means the split is legitimate, e.g. a T-junction),
+// neither is virtual, and they're collinear within ANGLE_TOL. Loops to a
+// fixed point since one merge can make a newly-adjacent pair collinear too.
+const WALL_MERGE_ANGLE_TOL = 2 * Math.PI / 180; // 2 degrees
+function mergeCollinearWallPairs(room) {
+  if (!room.wallRefs || room.wallRefs.length < 2) return;
+  let merged = true;
+  while (merged) {
+    merged = false;
+    const refs = room.wallRefs;
+    const n = refs.length;
+    const segCount = room.open ? n - 1 : n;
+    for (let i = 0; i < segCount; i++) {
+      const refA = refs[i], refB = refs[(i + 1) % n];
+      const wallA = getWallById(refA.wallId), wallB = getWallById(refB.wallId);
+      if (!wallA || !wallB || wallA.id === wallB.id) continue;
+      if (wallA.virtual || wallB.virtual) continue;
+      if (wallA.ownerRoomIds.length !== 1 || wallB.ownerRoomIds.length !== 1) continue;
+      if (wallA.ownerRoomIds[0] !== room.id || wallB.ownerRoomIds[0] !== room.id) continue;
+
+      const startA = refA.reversed ? wallA.b : wallA.a, endA = refA.reversed ? wallA.a : wallA.b;
+      const startB = refB.reversed ? wallB.b : wallB.a, endB = refB.reversed ? wallB.a : wallB.b;
+      if (dist(endA, startB) > 0.5) continue; // must share a vertex (they're adjacent by wallRefs order, but guard anyway)
+
+      const angleA = Math.atan2(endA.y - startA.y, endA.x - startA.x);
+      const angleB = Math.atan2(endB.y - startB.y, endB.x - startB.x);
+      let dAngle = Math.abs(angleA - angleB);
+      if (dAngle > Math.PI) dAngle = 2 * Math.PI - dAngle;
+      if (dAngle > WALL_MERGE_ANGLE_TOL) continue;
+
+      const lenA = dist(startA, endA), lenB = dist(startB, endB);
+      const totalLen = lenA + lenB;
+      if (totalLen < 1) continue;
+      const merged_ = { id: wallNextId++, a: { ...startA }, b: { ...endB }, doors: [], windows: [], gateways: [], ownerRoomIds: [room.id] };
+      const remapA = o => ({ ...o, t: (o.t * lenA) / totalLen });
+      const remapB = o => ({ ...o, t: (lenA + o.t * lenB) / totalLen });
+      const takeA = list => (refA.reversed ? list.map(o => ({ ...o, t: 1 - o.t })) : list).map(remapA);
+      const takeB = list => (refB.reversed ? list.map(o => ({ ...o, t: 1 - o.t })) : list).map(remapB);
+      merged_.doors = [...takeA(wallA.doors), ...takeB(wallB.doors)];
+      merged_.windows = [...takeA(wallA.windows), ...takeB(wallB.windows)];
+      merged_.gateways = [...takeA(wallA.gateways), ...takeB(wallB.gateways)];
+
+      state.walls = state.walls.filter(w => w.id !== wallA.id && w.id !== wallB.id);
+      state.walls.push(merged_);
+
+      const newRef = { wallId: merged_.id, reversed: false };
+      if (i + 1 < n) {
+        refs.splice(i, 2, newRef);
+      } else {
+        // wraparound pair (last, first) — merged wall replaces both ends
+        refs.splice(0, 1);
+        refs.splice(refs.length - 1, 1, newRef);
+      }
+      syncRoomPointsFromWalls(room);
+      merged = true;
+      break;
+    }
+  }
+}
+
 // Quantizes a coordinate to a stable string key for graph-node identity.
 // This is finer than VERTEX_SNAP_DIST (which is a zoom-dependent screen-
 // space click tolerance) — real vertex identity was already established by

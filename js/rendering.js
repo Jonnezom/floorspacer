@@ -50,9 +50,11 @@ function render() {
   // draw a given wall's label gets to — good enough since both rooms report
   // the same physical length anyway.
   const labeledWallIds = new Set();
+  const cornerThickenPts = new Map();
   state.rooms.forEach(room => {
-    try { drawRoom(room, ctx, labeledWallIds); } catch (e) { console.warn('Failed to draw room', room.id, e); }
+    try { drawRoom(room, ctx, labeledWallIds, cornerThickenPts); } catch (e) { console.warn('Failed to draw room', room.id, e); }
   });
+  drawCornerThickening(ctx, cornerThickenPts);
 
   // in-progress draw
   if ((state.mode === 'draw' || state.mode === 'drawwall' || state.mode === 'extend') && state.drawPoints.length > 0) {
@@ -167,7 +169,7 @@ function drawRuler(W, H, c = ctx, dark = true) {
   c.fillText('2m', sbX + sbW / 2, sbY - 6 / state.zoom);
 }
 
-function drawRoom(room, c = ctx, labeledWallIds = null) {
+function drawRoom(room, c = ctx, labeledWallIds = null, cornerThickenPts = null) {
   if (room.points.length < 2) return;
   const interactive = c === ctx;
   const ci = room.colorIndex ?? 0;
@@ -236,13 +238,14 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
   }
   // An earlier version of this pass nibbled a small cosmetic notch off a
   // NEIGHBORING wall's span whenever an opening sat right at a shared
-  // corner, so the cut didn't look like it stopped abruptly at the joint.
-  // Removed: when the corner sits on a wall shared between two rooms, each
-  // room's independent render pass nibbled its OWN neighboring wall for the
-  // same opening, so a single gateway/door/window visibly opened up two
-  // separate walls in two different rooms instead of just its own wall.
-  // Every wall now only ever loses exactly the span its own openings cut —
-  // no cross-wall bleed, even at a corner.
+  // corner — but it mutated the *span* (widening/elongating the gap along
+  // that neighbor's own length) and did so per-room, so a wall shared by
+  // two rooms got nibbled twice independently, visibly opening up two
+  // different walls in two different rooms for one opening. Fixed below
+  // by never touching a neighbor's span at all — instead, when an opening
+  // truncates a wall right at a shared vertex, a small filled square is
+  // drawn AT that vertex (sized off lineWidth), thickening the joint's
+  // appearance without moving any wall's own gap boundaries.
   for (const wall of wallSpans) {
     // Dashed so an auto-generated closing edge (from Enter/double-click
     // finish) is visually distinguishable from a wall the user actually
@@ -252,6 +255,30 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
     for (const [t1, t2] of wall.spans) drawWallSpan(c, wall.p1, wall.p2, t1, t2);
   }
   c.setLineDash([]);
+
+  // Corner thickening — when an opening truncates a wall's span right at
+  // one of its endpoints (t1 > 0 near t=0, or t2 < 1 near t=1), that
+  // endpoint's shared vertex is left with only the OTHER wall's butt-capped
+  // stroke ending there, which reads as an abrupt/pointy stub instead of a
+  // properly thickened corner. Collecting the point here (deduped globally
+  // via cornerThickenPts, keyed by rounded coords so it's shared across
+  // rooms/walls) and drawing a small filled square at it — once, after all
+  // rooms are stroked — restores the intended "thicken the joint" look
+  // without ever touching a neighboring wall's own span/gap data.
+  if (!room.callRoom && cornerThickenPts) {
+    for (let i = 0; i < wallCount; i++) {
+      const wall = wallSpans[i];
+      if (!wall.spans.length) continue;
+      const firstSpan = wall.spans[0], lastSpan = wall.spans[wall.spans.length - 1];
+      const truncatedAtStart = firstSpan[0] > 0.001;
+      const truncatedAtEnd = lastSpan[1] < 0.999;
+      const key = p => `${Math.round(p.x)},${Math.round(p.y)}`;
+      const color = isSelected ? '#fff' : strokeColor;
+      const size = baseLineWidth;
+      if (truncatedAtStart) cornerThickenPts.set(key(wall.p1), { p: wall.p1, color, size });
+      if (truncatedAtEnd) cornerThickenPts.set(key(wall.p2), { p: wall.p2, color, size });
+    }
+  }
 
   // doors, windows, gateways — draw a shared wall's openings only once,
   // from its first owning room, so a wall shared by two rooms doesn't get
@@ -331,6 +358,14 @@ function drawRoom(room, c = ctx, labeledWallIds = null) {
       c.stroke();
     });
   }
+}
+
+function drawCornerThickening(c, cornerThickenPts) {
+  cornerThickenPts.forEach(({ p, color, size }) => {
+    c.fillStyle = color;
+    const half = size / state.zoom;
+    c.fillRect(p.x - half, p.y - half, half * 2, half * 2);
+  });
 }
 
 function drawWallSpan(c, p1, p2, t1, t2) {

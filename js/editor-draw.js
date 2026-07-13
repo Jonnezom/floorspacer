@@ -488,6 +488,11 @@ function deleteSelectedRoom() {
       if (w) w.ownerRoomIds = w.ownerRoomIds.filter(id => id !== room.id);
     }
     state.walls = state.walls.filter(w => w.ownerRoomIds.length > 0);
+    // The deleted room may have been the reason a surviving room's wall got
+    // split (splitWallAt) in the first place — e.g. to give this room a
+    // shared vertex mid-span. That split has no purpose now, so re-merge
+    // any fragments left collinear-and-solely-owned by each surviving room.
+    for (const r of state.rooms) mergeCollinearWallPairs(r);
   }
   state.selectedRoomId = null;
   updateRightPanel(); render(); saveToLocal();
