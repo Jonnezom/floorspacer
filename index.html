@@ -613,6 +613,8 @@ input[type="color"] {
   <button class="tb-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
   <button class="tb-btn" id="btn-zoom-fit" title="Fit view">Fit</button>
   <div class="sep"></div>
+  <button class="tb-btn" id="btn-units" title="Switch between metric (m) and imperial (ft/in) units">Units: m</button>
+  <div class="sep"></div>
   <div style="position:relative">
     <button class="tb-btn" id="btn-save" title="Save current design">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -753,15 +755,15 @@ input[type="color"] {
   <div class="dim-title" id="dim-title">Set Size</div>
   <div id="dim-furniture-fields">
     <label>Width</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-w" autocomplete="off" name="floorspacer-width"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-w" autocomplete="off" name="floorspacer-width"> <span class="dim-unit" data-kind="length">m</span></div>
     <label>Depth</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-h" autocomplete="off" name="floorspacer-depth"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-h" autocomplete="off" name="floorspacer-depth"> <span class="dim-unit" data-kind="length">m</span></div>
   </div>
   <div id="dim-wall-fields" style="display:none">
     <label>Wall length</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-len" autocomplete="off" name="floorspacer-wall-length"> <span class="dim-unit">m</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-len" autocomplete="off" name="floorspacer-wall-length"> <span class="dim-unit" data-kind="length">m</span></div>
     <label>Direction (angle °, 0=right, 90=down)</label>
-    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-angle" autocomplete="off" name="floorspacer-wall-angle"> <span class="dim-unit">°</span></div>
+    <div class="dim-row"><input type="text" inputmode="decimal" id="dim-wall-angle" autocomplete="off" name="floorspacer-wall-angle"> <span class="dim-unit" data-kind="angle">°</span></div>
   </div>
   <div class="dim-btns">
     <button class="dim-ok" id="dim-ok">Apply</button>

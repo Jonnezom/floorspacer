@@ -143,7 +143,8 @@ function drawRuler(W, H, c = ctx, dark = true) {
 
   for (let x = x0; x < endX; x += step) {
     c.fillStyle = textColor;
-    c.fillText(`${(x * SCALE).toFixed(1)}m`, x, -state.panY / state.zoom + 12 / state.zoom);
+    const rulerLabel = state.units === 'imperial' ? `${(x * SCALE * FT_PER_M).toFixed(0)}ft` : `${(x * SCALE).toFixed(1)}m`;
+    c.fillText(rulerLabel, x, -state.panY / state.zoom + 12 / state.zoom);
     c.strokeStyle = tickColor;
     c.lineWidth = 0.5 / state.zoom;
     c.beginPath();
@@ -152,10 +153,11 @@ function drawRuler(W, H, c = ctx, dark = true) {
     c.stroke();
   }
 
-  // scale bar
+  // scale bar — 2m in metric mode, 5ft in imperial (both round, on-screen at a similar size)
   const sbX = (-state.panX / state.zoom) + 10;
   const sbY = (-state.panY / state.zoom) + (H - 40) / state.zoom;
-  const sbW = GRID * 4; // = 2m
+  const sbW = state.units === 'imperial' ? (5 * M_PER_FT) / SCALE : GRID * 4;
+  const sbLabel = state.units === 'imperial' ? '5ft' : '2m';
   c.strokeStyle = scaleBarColor;
   c.lineWidth = 2 / state.zoom;
   c.beginPath();
@@ -166,7 +168,7 @@ function drawRuler(W, H, c = ctx, dark = true) {
   c.fillStyle = scaleBarColor;
   c.font = `${10 / state.zoom}px sans-serif`;
   c.textAlign = 'center';
-  c.fillText('2m', sbX + sbW / 2, sbY - 6 / state.zoom);
+  c.fillText(sbLabel, sbX + sbW / 2, sbY - 6 / state.zoom);
 }
 
 function drawRoom(room, c = ctx, labeledWallIds = null, cornerThickenPts = null) {
@@ -308,7 +310,7 @@ function drawRoom(room, c = ctx, labeledWallIds = null, cornerThickenPts = null)
     const mx = (p.x + next.x) / 2, my = (p.y + next.y) / 2;
     const d = dist(p, next);
     if (d < 10) continue;
-    const meters = (d * SCALE).toFixed(2);
+    const lengthLabel = formatLength(d);
     const angle = Math.atan2(next.y - p.y, next.x - p.x);
     c.save();
     c.translate(mx, my);
@@ -317,7 +319,7 @@ function drawRoom(room, c = ctx, labeledWallIds = null, cornerThickenPts = null)
     c.font = `${10 / state.zoom}px sans-serif`;
     c.textAlign = 'center';
     c.globalAlpha = isSelected ? 1 : 0.8;
-    c.fillText(`${meters}m`, 0, -5 / state.zoom);
+    c.fillText(lengthLabel, 0, -5 / state.zoom);
     c.globalAlpha = 1;
     c.restore();
   }
@@ -341,7 +343,7 @@ function drawRoom(room, c = ctx, labeledWallIds = null, cornerThickenPts = null)
     if (showArea) {
       c.font = `${11 / state.zoom}px sans-serif`;
       const areaY = showName ? cy + 14 / state.zoom : cy;
-      c.fillText(`${polygonAreaM2(pts).toFixed(2)} m²`, cx, areaY);
+      c.fillText(formatArea(polygonAreaM2(pts)), cx, areaY);
     }
     c.globalAlpha = 1;
   }
@@ -464,10 +466,9 @@ function drawOpeningSelectionChrome(c, g, isSel, tickColor) {
     c.beginPath(); c.arc(x, y, 5 / state.zoom, 0, Math.PI * 2);
     c.fill(); c.stroke();
   });
-  const wm = ((g.width ?? DEFAULT_OPENING_PX) * SCALE).toFixed(2);
   c.font = `bold ${10 / state.zoom}px sans-serif`;
   c.textAlign = 'center';
-  const lbl = `${wm}m`;
+  const lbl = formatLength(g.width ?? DEFAULT_OPENING_PX);
   const tw = c.measureText(lbl).width + 6;
   c.fillStyle = 'rgba(0,0,0,0.75)';
   c.fillRect(mx - tw / 2, my + 8 / state.zoom, tw, 14 / state.zoom);
@@ -663,9 +664,7 @@ function drawFurnitureItem(item, def) {
     ctx.fill();
 
     // dimension label
-    const wm = (item.customW ? (item.customW * SCALE).toFixed(2) : (iw * SCALE).toFixed(2));
-    const hm = (item.customH ? (item.customH * SCALE).toFixed(2) : (ih * SCALE).toFixed(2));
-    const lbl = `${wm}×${hm}m`;
+    const lbl = `${formatLength(item.customW ?? iw)}×${formatLength(item.customH ?? ih)}`;
     ctx.font = `bold ${11 / state.zoom}px sans-serif`;
     const tw = ctx.measureText(lbl).width + 8;
     ctx.fillStyle = 'rgba(0,0,0,0.75)';

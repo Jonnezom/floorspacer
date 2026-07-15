@@ -195,6 +195,57 @@ function parseSmartNumber(str) {
 }
 
 // ═══════════════════════════════════════════════════════════
+//  UNITS (metric / imperial) — all length/area display and input parsing
+//  goes through these so state.units is the single source of truth.
+// ═══════════════════════════════════════════════════════════
+const M_PER_FT = 0.3048;
+const FT_PER_M = 1 / M_PER_FT;
+
+// px -> display string, e.g. "3.45m" or `12'6"`. Matches the precision the
+// old inline `(px * SCALE).toFixed(2) + 'm'` call sites used for metric.
+function formatLength(px) {
+  const meters = px * SCALE;
+  if (state.units !== 'imperial') return `${meters.toFixed(2)}m`;
+  const totalInches = meters * FT_PER_M * 12;
+  let feet = Math.floor(totalInches / 12);
+  let inches = Math.round((totalInches - feet * 12) * 10) / 10;
+  if (inches >= 12) { feet += 1; inches -= 12; } // rounding carry, e.g. 11.96 -> 12.0
+  const inchesStr = Number.isInteger(inches) ? inches : inches.toFixed(1);
+  return `${feet}'${inchesStr}"`;
+}
+
+// Same conversion, without the unit suffix — for pre-filling an editable
+// numeric input where the field already has a fixed "m"/"ft" label next to
+// it (imperial inputs are still typed as decimal feet, matching how the
+// existing numeric fields work; formatLength's feet+inches form is only for
+// read-only display, e.g. wall labels drawn on the canvas).
+function lengthToInputValue(px) {
+  const meters = px * SCALE;
+  return state.units === 'imperial' ? (meters * FT_PER_M).toFixed(2) : meters.toFixed(2);
+}
+
+// Inverse of lengthToInputValue — a decimal number typed into a length
+// field, in the unit currently active, converted to px.
+function inputValueToLength(value) {
+  return state.units === 'imperial' ? (value * M_PER_FT) / SCALE : value / SCALE;
+}
+
+function unitLabel() { return state.units === 'imperial' ? 'ft' : 'm'; }
+
+// m² -> display string, e.g. "12.30 m²" or "132.4 sq ft".
+function formatArea(m2) {
+  if (state.units !== 'imperial') return `${m2.toFixed(2)} m²`;
+  return `${(m2 * FT_PER_M * FT_PER_M).toFixed(1)} sq ft`;
+}
+
+function setUnits(units) {
+  state.units = units;
+  localStorage.setItem('floorspacer_units', units);
+  render();
+  updateRightPanel();
+}
+
+// ═══════════════════════════════════════════════════════════
 //  WALL REGISTRY (shared walls — Phase 0: data model + migration only)
 // ═══════════════════════════════════════════════════════════
 // A room no longer owns its geometry directly. It walks an ordered list of

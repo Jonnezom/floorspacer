@@ -162,6 +162,15 @@ document.getElementById('zoom-label').addEventListener('keydown', e => {
 document.getElementById('zoom-label').addEventListener('focus', e => e.target.select());
 document.getElementById('btn-zoom-fit').addEventListener('click', fitView);
 
+function updateUnitsButton() {
+  document.getElementById('btn-units').textContent = state.units === 'imperial' ? 'Units: ft' : 'Units: m';
+}
+updateUnitsButton();
+document.getElementById('btn-units').addEventListener('click', () => {
+  setUnits(state.units === 'imperial' ? 'metric' : 'imperial');
+  updateUnitsButton();
+});
+
 function fitView() {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   state.rooms.forEach(r => r.points.forEach(p => {
@@ -219,7 +228,7 @@ function updateRightPanel() {
         <div class="prop-row"><span class="prop-label">Width</span>
           <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
             <input type="text" inputmode="decimal" id="rp-door-width" style="width:70px;padding:4px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;">
-            <span style="color:#666;font-size:11px">m</span>
+            <span style="color:#666;font-size:11px" class="rp-unit-label">${unitLabel()}</span>
           </div>
         </div>
         <div class="prop-row" style="margin-top:6px">
@@ -245,7 +254,7 @@ function updateRightPanel() {
       document.getElementById('rp-door-width').addEventListener('change', e => {
         const d = state.selectedDoor; if (!d) return;
         const v = parseSmartNumber(e.target.value);
-        if (isFinite(v) && v > 0) { d.door.width = v / SCALE; e.target.value = v; render(); saveToLocal(); }
+        if (isFinite(v) && v > 0) { d.door.width = inputValueToLength(v); e.target.value = v; render(); saveToLocal(); }
       });
       document.getElementById('rp-door-type').addEventListener('change', e => {
         const d = state.selectedDoor; if (!d) return;
@@ -280,7 +289,9 @@ function updateRightPanel() {
       });
     }
     doorPanel.style.display = '';
-    document.getElementById('rp-door-width').value = ((doorSel.door.width ?? DEFAULT_OPENING_PX) * SCALE).toFixed(2);
+    document.getElementById('rp-door-width').value = lengthToInputValue(doorSel.door.width ?? DEFAULT_OPENING_PX);
+    const doorUnitLbl = document.querySelector('#rp-door .rp-unit-label');
+    if (doorUnitLbl) doorUnitLbl.textContent = unitLabel();
     const isSliding = doorSel.door.doorType === 'sliding';
     document.getElementById('rp-door-type').value = isSliding ? 'sliding' : 'hinged';
     document.getElementById('rp-door-swing').checked = doorSel.door.showSwing !== false;
@@ -307,7 +318,7 @@ function updateRightPanel() {
         <div class="prop-row"><span class="prop-label">Width</span>
           <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
             <input type="text" inputmode="decimal" id="rp-gw-width" style="width:70px;padding:4px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;">
-            <span style="color:#666;font-size:11px">m</span>
+            <span style="color:#666;font-size:11px" class="rp-unit-label">${unitLabel()}</span>
           </div>
         </div>
         <button class="prop-btn danger" id="rp-gw-delete" style="margin-top:8px" title="Remove this gateway from the wall.">✕ Delete gateway</button>
@@ -316,7 +327,7 @@ function updateRightPanel() {
       document.getElementById('rp-gw-width').addEventListener('change', e => {
         const g = state.selectedGateway; if (!g) return;
         const v = parseSmartNumber(e.target.value);
-        if (isFinite(v) && v > 0) { g.gw.width = v / SCALE; e.target.value = v; render(); saveToLocal(); }
+        if (isFinite(v) && v > 0) { g.gw.width = inputValueToLength(v); e.target.value = v; render(); saveToLocal(); }
       });
       document.getElementById('rp-gw-delete').addEventListener('click', () => {
         const g = state.selectedGateway; if (!g) return;
@@ -327,7 +338,9 @@ function updateRightPanel() {
       });
     }
     gwPanel.style.display = '';
-    document.getElementById('rp-gw-width').value = ((gwSel.gw.width ?? DEFAULT_OPENING_PX) * SCALE).toFixed(2);
+    document.getElementById('rp-gw-width').value = lengthToInputValue(gwSel.gw.width ?? DEFAULT_OPENING_PX);
+    const gwUnitLbl = document.querySelector('#rp-gateway .rp-unit-label');
+    if (gwUnitLbl) gwUnitLbl.textContent = unitLabel();
     return;
   }
 
@@ -346,7 +359,7 @@ function updateRightPanel() {
         <div class="prop-row"><span class="prop-label">Width</span>
           <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
             <input type="text" inputmode="decimal" id="rp-window-width" style="width:70px;padding:4px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;">
-            <span style="color:#666;font-size:11px">m</span>
+            <span style="color:#666;font-size:11px" class="rp-unit-label">${unitLabel()}</span>
           </div>
         </div>
         <div class="prop-row" style="margin-top:6px">
@@ -361,7 +374,7 @@ function updateRightPanel() {
       document.getElementById('rp-window-width').addEventListener('change', e => {
         const w = state.selectedWindow; if (!w) return;
         const v = parseSmartNumber(e.target.value);
-        if (isFinite(v) && v > 0) { w.window.width = v / SCALE; e.target.value = v; render(); saveToLocal(); }
+        if (isFinite(v) && v > 0) { w.window.width = inputValueToLength(v); e.target.value = v; render(); saveToLocal(); }
       });
       document.getElementById('rp-window-sash').addEventListener('change', e => {
         const w = state.selectedWindow; if (!w) return;
@@ -378,7 +391,9 @@ function updateRightPanel() {
       });
     }
     winPanel.style.display = '';
-    document.getElementById('rp-window-width').value = ((windowSel.window.width ?? DEFAULT_OPENING_PX) * SCALE).toFixed(2);
+    document.getElementById('rp-window-width').value = lengthToInputValue(windowSel.window.width ?? DEFAULT_OPENING_PX);
+    const winUnitLbl = document.querySelector('#rp-window .rp-unit-label');
+    if (winUnitLbl) winUnitLbl.textContent = unitLabel();
     document.getElementById('rp-window-sash').checked = windowSel.window.showSash !== false;
     return;
   }
@@ -394,8 +409,8 @@ function updateRightPanel() {
     const dispW = item.customW ?? def.w;
     const dispH = item.customH ?? def.h;
     document.getElementById('rp-name').textContent = def.name;
-    document.getElementById('rp-dims').textContent = `${(dispW * SCALE).toFixed(2)} × ${(dispH * SCALE).toFixed(2)} m`;
-    document.getElementById('rp-pos').textContent = `${(item.x * SCALE).toFixed(2)}, ${(item.y * SCALE).toFixed(2)} m`;
+    document.getElementById('rp-dims').textContent = `${formatLength(dispW)} × ${formatLength(dispH)}`;
+    document.getElementById('rp-pos').textContent = `${formatLength(item.x)}, ${formatLength(item.y)}`;
     document.getElementById('rp-rot').textContent = `${Math.round(item.rot * 180 / Math.PI)}°`;
     document.getElementById('rp-color').value = rgbToHex(item.color || '#888');
     const isImageItem = !!item.imageDataUrl;
@@ -413,7 +428,7 @@ function updateRightPanel() {
     document.getElementById('rp-room-open').checked = !!room.open;
     document.getElementById('rp-room-extend').style.display = room.open ? '' : 'none';
     const areaM2 = room.open ? 0 : polygonAreaM2(room.points);
-    document.getElementById('rp-room-area').textContent = room.open ? '—' : `${areaM2.toFixed(2)} m²`;
+    document.getElementById('rp-room-area').textContent = room.open ? '—' : formatArea(areaM2);
     document.getElementById('rp-room-showarea-row').style.display = room.open ? 'none' : '';
     document.getElementById('rp-room-showarea').checked = !!room.showArea;
     buildWallRows(room);
@@ -444,9 +459,9 @@ function buildWallRows(room) {
     row.innerHTML = `
       <span class="prop-label">Wall ${i + 1}</span>
       <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
-        <input type="text" inputmode="decimal" class="wall-len-input" data-wall-idx="${i}" value="${(len * SCALE).toFixed(2)}"
+        <input type="text" inputmode="decimal" class="wall-len-input" data-wall-idx="${i}" value="${lengthToInputValue(len)}"
           style="width:64px;padding:4px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;">
-        <span style="color:#666;font-size:11px">m</span>
+        <span style="color:#666;font-size:11px">${unitLabel()}</span>
         <input type="text" inputmode="decimal" class="wall-angle-input" data-wall-idx="${i}" value="${angleDeg.toFixed(0)}"
           style="width:56px;padding:4px 6px;background:#252525;border:1px solid #3a3a3a;border-radius:3px;color:#fff;font-size:12px;outline:none;margin-left:4px;">
         <span style="color:#666;font-size:11px">°</span>
@@ -474,7 +489,7 @@ function applyWallEdit(room, wallIdx, field, value) {
   const p2 = pts[(wallIdx + 1) % n];
   const oldLen = dist(p1, p2);
   const oldAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-  const newLen = field === 'length' ? value / SCALE : oldLen;
+  const newLen = field === 'length' ? inputValueToLength(value) : oldLen;
   const newAngle = field === 'angle' ? value * Math.PI / 180 : oldAngle;
   const newP2 = { x: p1.x + Math.cos(newAngle) * newLen, y: p1.y + Math.sin(newAngle) * newLen };
 

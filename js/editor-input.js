@@ -552,7 +552,7 @@ canvas.addEventListener('mousemove', e => {
   } else {
     state._mouseWorld = snapPt(wp);
   }
-  document.getElementById('sb-cursor').textContent = `x: ${(wp.x * SCALE).toFixed(2)}m  y: ${(wp.y * SCALE).toFixed(2)}m`;
+  document.getElementById('sb-cursor').textContent = `x: ${formatLength(wp.x)}  y: ${formatLength(wp.y)}`;
 
   if (mouseState.maybePanning) {
     const dx = e.clientX - mouseState.panCandidateStartX, dy = e.clientY - mouseState.panCandidateStartY;

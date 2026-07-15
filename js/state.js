@@ -28,6 +28,7 @@ let state = {
   sidebarHidden: false,
   tutorialActive: false,
   tutorialStep: 0,
+  units: localStorage.getItem('floorspacer_units') || 'metric', // 'metric' | 'imperial'
 };
 
 let undoStack = [];

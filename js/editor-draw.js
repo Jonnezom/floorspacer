@@ -365,8 +365,9 @@ function showFurniturePopup(item, def, cx, cy) {
 
   const wInput = document.getElementById('dim-w');
   const hInput = document.getElementById('dim-h');
-  wInput.value = ((item.customW ?? def.w) * SCALE).toFixed(2);
-  hInput.value = ((item.customH ?? def.h) * SCALE).toFixed(2);
+  wInput.value = lengthToInputValue(item.customW ?? def.w);
+  hInput.value = lengthToInputValue(item.customH ?? def.h);
+  document.querySelectorAll('#dim-popup .dim-unit[data-kind="length"]').forEach(el => el.textContent = unitLabel());
 
   positionPopup(cx, cy);
   setTimeout(() => wInput.focus(), 30);
@@ -377,8 +378,8 @@ function showFurniturePopup(item, def, cx, cy) {
     const newH = parseSmartNumber(hInput.value);
     if (!isFinite(newW) || newW <= 0 || !isFinite(newH) || newH <= 0) return;
     // Store custom dimensions in pixels on the item
-    item.customW = Math.round(newW / SCALE / SNAP_GRID) * SNAP_GRID || SNAP_GRID;
-    item.customH = Math.round(newH / SCALE / SNAP_GRID) * SNAP_GRID || SNAP_GRID;
+    item.customW = Math.round(inputValueToLength(newW) / SNAP_GRID) * SNAP_GRID || SNAP_GRID;
+    item.customH = Math.round(inputValueToLength(newH) / SNAP_GRID) * SNAP_GRID || SNAP_GRID;
     furnitureCache.clear();
     updateRightPanel();
     render();
@@ -398,11 +399,12 @@ function showWallPopup(fromPt, ptIndex) {
 
   const lenInput = document.getElementById('dim-wall-len');
   const angleInput = document.getElementById('dim-wall-angle');
+  document.querySelectorAll('#dim-popup .dim-unit[data-kind="length"]').forEach(el => el.textContent = unitLabel());
 
   // Pre-fill with the current wall stats
   const currentDist = dist(prevPt, fromPt);
   const currentAngle = Math.round(Math.atan2(fromPt.y - prevPt.y, fromPt.x - prevPt.x) * 180 / Math.PI);
-  lenInput.value = (currentDist * SCALE).toFixed(2);
+  lenInput.value = lengthToInputValue(currentDist);
   angleInput.value = currentAngle;
 
   // Position near the midpoint of the wall on screen
@@ -422,7 +424,7 @@ function showWallPopup(fromPt, ptIndex) {
     const angleDeg = parseSmartNumber(angleInput.value);
     if (!isFinite(lenM) || lenM <= 0 || !isFinite(angleDeg)) return;
 
-    const lenPx = lenM / SCALE;
+    const lenPx = inputValueToLength(lenM);
     const rad = angleDeg * Math.PI / 180;
     const newPt = snapPt({
       x: prevPt.x + Math.cos(rad) * lenPx,
