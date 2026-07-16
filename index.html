@@ -269,6 +269,39 @@ input[type="color"] {
   padding: 2px;
 }
 
+/* ── MOBILE / NARROW VIEWPORT ── */
+/* Sidebar and right panel become slide-in overlays instead of reflowing
+   the canvas — same .hidden class/JS toggle as desktop (applySidebarVisibility,
+   updateRightPanel), just a different meaning for .hidden under this width. */
+@media (max-width: 700px) {
+  #toolbar { overflow-x: auto; overflow-y: hidden; }
+  #main { position: relative; }
+  #sidebar, #right-panel {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 82vw;
+    max-width: 300px;
+    min-width: 0;
+    z-index: 50;
+    box-shadow: 0 0 24px rgba(0,0,0,.6);
+    transition: transform .2s ease;
+  }
+  #sidebar { left: 0; transform: translateX(-100%); }
+  #sidebar:not(.hidden) { transform: translateX(0); }
+  #sidebar.hidden { display: flex; transform: translateX(-100%); }
+  #right-panel { right: 0; }
+  #right-panel.hidden { display: flex; transform: translateX(100%); }
+  #right-panel:not(.hidden) { transform: translateX(0); }
+  #mobile-overlay-backdrop.show { display: block; }
+}
+#mobile-overlay-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 40;
+}
+
 /* ── STATUS BAR ── */
 #statusbar {
   height: 22px;
@@ -645,6 +678,8 @@ input[type="color"] {
 
 <!-- MAIN -->
 <div id="main">
+  <!-- Narrow-viewport backdrop behind the slide-in sidebar/right-panel overlays; tapping it closes whichever is open. -->
+  <div id="mobile-overlay-backdrop"></div>
   <!-- SIDEBAR -->
   <div id="sidebar">
     <div id="search-wrap">
@@ -696,6 +731,7 @@ input[type="color"] {
       <button class="prop-btn" id="rp-resize" title="Type exact width and depth for this item."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Resize…</button>
       <button class="prop-btn" id="rp-rotate" title="Rotate this item by 90 degrees."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 4 20 4 20 9"/><path d="M20 4L14 10"/><path d="M4 14a8 8 0 0 0 15 4"/></svg> Rotate 90°</button>
       <button class="prop-btn" id="rp-flip" title="Mirror this item horizontally."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/><path d="M8 7L4 12l4 5"/><path d="M16 7l4 5-4 5"/></svg> Flip</button>
+      <button class="prop-btn" id="rp-duplicate" title="Create a copy of this item."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Duplicate</button>
       <button class="prop-btn danger" id="rp-delete" title="Remove this item from the design."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Delete</button>
     </div>
     <!-- Room section -->

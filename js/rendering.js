@@ -877,6 +877,7 @@ function applySidebarVisibility() {
   const toggleBtn = document.getElementById('btn-furniture-toggle');
   sidebar.classList.toggle('hidden', state.sidebarHidden);
   toggleBtn.classList.toggle('active', !state.sidebarHidden);
+  updateMobileOverlayBackdrop();
 }
 
 function setSidebarHidden(hidden) {
@@ -887,6 +888,25 @@ function setSidebarHidden(hidden) {
 
 document.getElementById('btn-furniture-toggle').addEventListener('click', () => {
   setSidebarHidden(!state.sidebarHidden);
+});
+
+// Narrow-viewport only (see the @media block in index.html) — the sidebar
+// and right panel become slide-in overlays there, so a dimmed backdrop
+// behind them makes it visually clear they're modal and gives a
+// tap-outside-to-close affordance. No-op / invisible above that breakpoint,
+// since the media query is what actually turns .hidden into a slide/overlay.
+function updateMobileOverlayBackdrop() {
+  const backdrop = document.getElementById('mobile-overlay-backdrop');
+  const sidebar = document.getElementById('sidebar');
+  const rightPanel = document.getElementById('right-panel');
+  const anyOpen = !sidebar.classList.contains('hidden') || !rightPanel.classList.contains('hidden');
+  backdrop.classList.toggle('show', anyOpen);
+}
+
+document.getElementById('mobile-overlay-backdrop').addEventListener('click', () => {
+  setSidebarHidden(true);
+  deselectAll();
+  updateRightPanel();
 });
 
 document.getElementById('sidebar-unlock-btn').addEventListener('click', () => {

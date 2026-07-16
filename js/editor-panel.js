@@ -209,8 +209,9 @@ function updateRightPanel() {
   const doorSel = state.selectedDoor;
   const windowSel = state.selectedWindow;
 
-  if (!item && !room && !gwSel && !doorSel && !windowSel) { panel.classList.add('hidden'); return; }
+  if (!item && !room && !gwSel && !doorSel && !windowSel) { panel.classList.add('hidden'); updateMobileOverlayBackdrop(); return; }
   panel.classList.remove('hidden');
+  updateMobileOverlayBackdrop();
 
   if (doorSel) {
     furnSection.style.display = 'none';
@@ -533,6 +534,7 @@ document.getElementById('rp-resize').addEventListener('click', () => {
 });
 document.getElementById('rp-rotate').addEventListener('click', rotateSelected);
 document.getElementById('rp-flip').addEventListener('click', flipSelected);
+document.getElementById('rp-duplicate').addEventListener('click', duplicateSelected);
 document.getElementById('rp-delete').addEventListener('click', deleteSelected);
 document.getElementById('rp-color').addEventListener('input', e => {
   const item = getSelectedItem();
