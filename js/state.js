@@ -29,6 +29,7 @@ let state = {
   tutorialActive: false,
   tutorialStep: 0,
   units: localStorage.getItem('floorspacer_units') || 'metric', // 'metric' | 'imperial'
+  pendingPlacementDefId: null, // tap-armed furniture (touch equivalent of desktop drag-and-drop), see js/editor-input.js
 };
 
 let undoStack = [];

@@ -51,16 +51,20 @@ function pickCustomImage(onReady) {
   input.click();
 }
 
-canvas.addEventListener('drop', e => {
-  e.preventDefault();
-  const defId = parseInt(e.dataTransfer.getData('defId'));
+// Shared by desktop drag-and-drop (the `drop` listener below) and the
+// touch-friendly tap-to-arm/tap-to-place flow (state.pendingPlacementDefId,
+// wired in the pointerdown handler and the sidebar row's click handler in
+// js/rendering.js) — HTML5 drag-and-drop never fires from touch gestures,
+// so touch needs an entirely separate activation path, but both paths place
+// the same way once they have a defId and a screen position.
+function placeFurnitureAt(defId, clientX, clientY) {
   const def = FURNITURE_DEFS.find(d => d.id === defId);
   if (!def) return;
   if (def.tier === 'paid' && !state.licenseUnlocked) return;
   trackEvent('furniture_placed', { category: def.category });
 
   const rect = canvas.getBoundingClientRect();
-  let pt = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+  let pt = screenToWorld(clientX - rect.left, clientY - rect.top);
   pt = snapPt(pt);
 
   if (def.isImage) {
@@ -89,7 +93,13 @@ canvas.addEventListener('drop', e => {
   saveToLocal();
 
   // Show size dialog
-  showFurniturePopup(item, def, e.clientX, e.clientY);
+  showFurniturePopup(item, def, clientX, clientY);
+}
+
+canvas.addEventListener('drop', e => {
+  e.preventDefault();
+  const defId = parseInt(e.dataTransfer.getData('defId'));
+  placeFurnitureAt(defId, e.clientX, e.clientY);
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -338,10 +348,24 @@ function projectOnSegment(px, py, x1, y1, x2, y2) {
   return Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len2));
 }
 
-canvas.addEventListener('mousedown', e => {
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
   const rect = canvas.getBoundingClientRect();
   const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
   const wp = screenToWorld(sx, sy);
+
+  // Tap-to-place: a furniture row was tapped/armed in the sidebar (see
+  // js/rendering.js), and this tap on the canvas places it — the touch
+  // equivalent of desktop drag-and-drop, which never fires from touch.
+  // Takes priority over selection/panning since an armed placement is a
+  // clear, explicit intent.
+  if (state.pendingPlacementDefId != null && e.button === 0) {
+    const defId = state.pendingPlacementDefId;
+    state.pendingPlacementDefId = null;
+    updateArmedFurnitureRow();
+    placeFurnitureAt(defId, e.clientX, e.clientY);
+    return;
+  }
 
   if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && (state.mode === 'pan' || mouseState.spaceDown))) {
     // pan
@@ -538,7 +562,7 @@ canvas.addEventListener('mousedown', e => {
   }
 });
 
-canvas.addEventListener('mousemove', e => {
+canvas.addEventListener('pointermove', e => {
   const rect = canvas.getBoundingClientRect();
   const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
   const wp = screenToWorld(sx, sy);
@@ -730,7 +754,8 @@ canvas.addEventListener('mousemove', e => {
   if (state.mode === 'draw' || state.mode === 'drawwall' || state.mode === 'extend') render();
 });
 
-canvas.addEventListener('mouseup', e => {
+canvas.addEventListener('pointerup', e => {
+  if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
   if (mouseState.panning) {
     mouseState.panning = false;
     canvas.classList.remove('dragging');

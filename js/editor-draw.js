@@ -348,12 +348,12 @@ dimPopup.addEventListener('keydown', e => {
 // toolbar, or empty page chrome) applies the popup's current value, same as
 // its OK button — canvas clicks are handled separately in the mousedown
 // handler itself, since they also need to go on and place the next point.
-document.addEventListener('mousedown', e => {
+document.addEventListener('pointerdown', e => {
   if (!dimPopup.classList.contains('show')) return;
   if (dimPopup.contains(e.target)) return;
   const panel = document.getElementById('right-panel');
   if (panel && panel.contains(e.target)) return;
-  if (canvas.contains(e.target)) return; // handled in canvas's own mousedown
+  if (canvas.contains(e.target)) return; // handled in canvas's own pointerdown
   if (_dimCallback) _dimCallback(true);
   closeDimPopup();
 }, { capture: true });
@@ -597,6 +597,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && (state.mode === 'draw' || state.mode === 'drawwall' || state.mode === 'extend')) {
     if (_dimCallback) { _dimCallback(false); closeDimPopup(); }
     state.drawPoints = []; state.extendRoomId = null; returnToSelectMode(); render();
+    return;
+  }
+  // Same rationale as the draw-mode Escape above: an unrelated focused
+  // <input> elsewhere on the page (e.g. the furniture-size popup that
+  // auto-focuses right after a tap-to-place) must not swallow Escape before
+  // it can disarm a pending tap-to-place.
+  if (e.key === 'Escape' && state.pendingPlacementDefId != null) {
+    state.pendingPlacementDefId = null; updateArmedFurnitureRow();
     return;
   }
 

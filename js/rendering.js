@@ -834,6 +834,24 @@ function buildSidebar(filter = '') {
         badge.title = 'Paid feature — unlock the full catalog';
         row.appendChild(badge);
         row.addEventListener('click', () => { trackEvent('locked_furniture_clicked', { item: def.name }); openAccountModal(); });
+      } else {
+        // Tap-to-arm: touch has no equivalent of desktop drag-and-drop
+        // (HTML5 DnD never fires from touch gestures), so tapping a row
+        // arms it for placement — the next tap on the canvas places it
+        // (see state.pendingPlacementDefId, js/editor-input.js). Tapping an
+        // already-armed row again disarms it. Purely additive: desktop
+        // drag-and-drop below is untouched and still works.
+        row.addEventListener('click', () => {
+          const wasArmed = state.pendingPlacementDefId === def.id;
+          state.pendingPlacementDefId = wasArmed ? null : def.id;
+          updateArmedFurnitureRow();
+          // On narrow/mobile viewports the sidebar is a full overlay (see the
+          // @media block in index.html) — arming an item then closes it so
+          // the canvas is immediately tappable, matching a "pick, then
+          // place" two-step flow. No-op above that breakpoint since the
+          // sidebar doesn't cover the canvas there anyway.
+          if (!wasArmed && window.innerWidth <= 700) setSidebarHidden(true);
+        });
       }
 
       row.addEventListener('dragstart', e => {
@@ -870,6 +888,15 @@ function applyTierGating() {
     lockSub.textContent = `${FREE_FURNITURE_COUNT}/${FURNITURE_DEFS.length} items free — unlock ${PAID_FURNITURE_COUNT} more for a one-time €10.`;
   }
   applySidebarVisibility();
+}
+
+// Reflects state.pendingPlacementDefId onto the sidebar row DOM — a plain
+// query+class-toggle rather than a full buildSidebar() re-render, since this
+// fires on every arm/disarm/place and the catalog list itself never changes.
+function updateArmedFurnitureRow() {
+  document.querySelectorAll('.furn-item').forEach(row => {
+    row.classList.toggle('armed', state.pendingPlacementDefId != null && parseInt(row.dataset.defId) === state.pendingPlacementDefId);
+  });
 }
 
 function applySidebarVisibility() {
