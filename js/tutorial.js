@@ -85,7 +85,7 @@ function tutorialCheckAdvance() {
 
 function tutorialAdvance() {
   state.tutorialStep++;
-  if (state.tutorialStep >= TUTORIAL_STEPS.length) { endTutorial(); return; }
+  if (state.tutorialStep >= TUTORIAL_STEPS.length) { trackEvent('tutorial_completed'); endTutorial(); return; }
   renderTutorialStep();
 }
 
@@ -98,10 +98,12 @@ function startTutorial() {
     saved: false,
     shiftJoined: false,
   };
+  trackEvent('tutorial_started');
   renderTutorialStep();
 }
 
-function endTutorial() {
+function endTutorial(skipped) {
+  if (skipped && state.tutorialActive) trackEvent('tutorial_skipped', { atStep: state.tutorialStep });
   state.tutorialActive = false;
   document.getElementById('tutorial-highlight-ring').classList.remove('show');
   document.getElementById('tutorial-tooltip').classList.remove('show');
@@ -141,7 +143,7 @@ function renderTutorialStep() {
   tooltip.classList.add('show');
 }
 
-document.getElementById('tutorial-skip').addEventListener('click', endTutorial);
+document.getElementById('tutorial-skip').addEventListener('click', () => endTutorial(true));
 document.getElementById('tutorial-next').addEventListener('click', tutorialAdvance);
 document.getElementById('btn-tutorial').addEventListener('click', startTutorial);
 window.addEventListener('resize', () => { if (state.tutorialActive) renderTutorialStep(); });

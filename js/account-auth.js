@@ -137,6 +137,7 @@ document.getElementById('account-signin-btn').addEventListener('click', async ()
   if (!email || !password) return showAccountError('Enter an email and password.');
   const { error } = await signIn(email, password);
   if (error) return showAccountError(error.message);
+  trackEvent('login_completed');
   clearAccountModalBanner();
   updateAccountUI();
 });

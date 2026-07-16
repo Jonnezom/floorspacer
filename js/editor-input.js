@@ -383,6 +383,7 @@ canvas.addEventListener('mousedown', e => {
         returnToSelectMode();
         updateRightPanel();
         saveToLocal();
+        trackEvent('opening_placed', { type: createdMode });
       }
       return;
     }

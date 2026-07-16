@@ -214,6 +214,7 @@ const FREE_SAVE_SLOT_LIMIT = 3;
 
 async function saveCurrentDesign(forceNew) {
   saveToLocal();
+  const isNew = !currentDesignId || forceNew;
   if (currentDesignId && !forceNew) {
     await saveDesign(null, currentDesignId);
   } else {
@@ -226,6 +227,7 @@ async function saveCurrentDesign(forceNew) {
     if (name === null) { showSaveToast(); return; } // user cancelled naming, still keep quick-save
     currentDesignId = await saveDesign(name || 'Untitled design', null);
   }
+  trackEvent('design_saved', { isNew });
   showSaveToast();
 }
 
