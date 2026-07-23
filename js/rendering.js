@@ -69,9 +69,45 @@ function render() {
 
   ctx.restore();
 
+  // Idle watermark — free-tier only, matching the export-time watermark
+  // (drawWatermark, js/persistence.js) exactly, just applied to the live
+  // canvas instead of an exported PNG. Only shown after IDLE_WATERMARK_MS
+  // of no tracked input, so a screenshot taken during active editing stays
+  // clean, but one taken after a pause (the realistic "let me capture this"
+  // moment) already carries the mark — this can't detect or block an OS-level
+  // screenshot itself (no such signal exists on the web), it just removes
+  // the incentive for the common case where the user pauses to compose one.
+  if (!state.licenseUnlocked && isCanvasIdle()) drawWatermark(ctx, W, H);
+
   renderMinimap();
   updateStatus();
 }
+
+// ═══════════════════════════════════════════════════════════
+//  IDLE WATERMARK (free tier) — see the render() call site above.
+// ═══════════════════════════════════════════════════════════
+const IDLE_WATERMARK_MS = 3000;
+let _lastActivityAt = Date.now();
+let _idleWatermarkTimer = null;
+
+function isCanvasIdle() {
+  return Date.now() - _lastActivityAt >= IDLE_WATERMARK_MS;
+}
+
+// Called on any tracked input so the idle clock resets; schedules exactly
+// one re-render for when the idle window elapses (rather than polling),
+// and only bothers at all for free-tier users since paid users never see
+// the mark regardless of idle state.
+function markActivity() {
+  _lastActivityAt = Date.now();
+  if (_idleWatermarkTimer) clearTimeout(_idleWatermarkTimer);
+  if (state.licenseUnlocked) return;
+  _idleWatermarkTimer = setTimeout(() => { if (!state.licenseUnlocked) render(); }, IDLE_WATERMARK_MS);
+}
+
+['pointerdown', 'pointermove', 'wheel', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, markActivity, { passive: true });
+});
 
 function drawEmptyStateHint(W, H) {
   const cx = W / 2, cy = H / 2 - 20;
