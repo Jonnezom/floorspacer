@@ -3,10 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Floorspacer</title>
+<title>Floorspacer — Free Floor Plan & Room Layout Designer</title>
+<meta name="description" content="Draw your floor plan to scale, place furniture, and check what actually fits before moving day — free in-browser floor plan and room layout designer, no signup required.">
+<link rel="canonical" href="https://floorspacer.com/">
+
+<!-- Open Graph / social previews -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://floorspacer.com/">
+<meta property="og:title" content="Floorspacer — Free Floor Plan & Room Layout Designer">
+<meta property="og:description" content="Draw your floor plan to scale, place furniture, and check what actually fits before moving day — free in-browser floor plan and room layout designer, no signup required.">
+<meta property="og:image" content="https://floorspacer.com/imgs/floorspacerdemo.png">
+<meta property="og:image:width" content="1908">
+<meta property="og:image:height" content="923">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Floorspacer — Free Floor Plan & Room Layout Designer">
+<meta name="twitter:description" content="Draw your floor plan to scale, place furniture, and check what actually fits before moving day — free in-browser floor plan and room layout designer, no signup required.">
+<meta name="twitter:image" content="https://floorspacer.com/imgs/floorspacerdemo.png">
+
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111'/%3E%3Cpath d='M7 8 L20 8 L20 14 L25 14 L25 24 L7 24 Z' fill='none' stroke='%234a9eff' stroke-width='2' stroke-linejoin='round'/%3E%3Cline x1='7' y1='16' x2='13' y2='16' stroke='%234a9eff' stroke-width='2'/%3E%3Cline x1='17' y1='16' x2='20' y2='16' stroke='%234a9eff' stroke-width='2'/%3E%3C/svg%3E">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Visually hidden but readable by screen readers/search crawlers — used
+   for the one-paragraph app description near the <h1>, which has no other
+   natural home in a canvas-driven UI without disrupting the toolbar layout. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -544,7 +574,8 @@ input[type="color"] {
 
 <!-- TOOLBAR -->
 <div id="toolbar">
-  <span id="app-title">Floorspacer</span>
+  <h1 id="app-title">Floorspacer</h1>
+  <p class="sr-only">Floorspacer is a free, browser-based floor plan and room layout designer. Draw your room or apartment to scale, place furniture, doors, and windows, and check what fits before you move — no signup, no install.</p>
   <div class="sep"></div>
   <button class="tb-btn" id="btn-furniture-toggle" title="Show or hide the furniture panel.">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5"/><path d="M3 12h18v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><line x1="4" y1="17" x2="4" y2="20"/><line x1="20" y1="17" x2="20" y2="20"/></svg>
