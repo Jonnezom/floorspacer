@@ -455,7 +455,7 @@ document.getElementById('export-modal-go').addEventListener('click', () => {
 
 function drawWatermark(c, w, h) {
   c.save();
-  c.fillStyle = 'rgba(160,160,160,0.35)';
+  c.fillStyle = 'rgba(160,160,160,0.20)';
   c.font = 'bold 22px sans-serif';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
