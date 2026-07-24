@@ -5,12 +5,16 @@
 const canvasWrap = document.getElementById('canvas-wrap');
 const canvas = document.getElementById('main-canvas');
 const ctx = canvas.getContext('2d');
+const idleWatermarkCanvas = document.getElementById('idle-watermark-canvas');
+const idleWatermarkCtx = idleWatermarkCanvas.getContext('2d');
 const mmCanvas = document.getElementById('minimap-canvas');
 const mmCtx = mmCanvas.getContext('2d');
 
 function resizeCanvas() {
   canvas.width = canvasWrap.offsetWidth;
   canvas.height = canvasWrap.offsetHeight;
+  idleWatermarkCanvas.width = canvasWrap.offsetWidth;
+  idleWatermarkCanvas.height = canvasWrap.offsetHeight;
   render();
 }
 
